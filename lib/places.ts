@@ -122,6 +122,26 @@ export function placeById(id: string): Point {
   return found;
 }
 
+/** Campus stops and landmarks whose Chinese name contains the query. Case-insensitive. */
+export function searchPlaces(query: string): Point[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [];
+  return CATALOG.filter((item) => item.name.toLowerCase().includes(needle));
+}
+
+/** Geocoded place. Keeps the typed name and the raw coordinates, even off campus. */
+export function typedPin(lat: number, lng: number, name: string): Point {
+  const zoned = pointFromMap(lat, lng);
+  return {
+    id: `pin:${lat.toFixed(5)},${lng.toFixed(5)}`,
+    name,
+    lat,
+    lng,
+    zone: zoned.zone,
+    kind: "pin",
+  };
+}
+
 export const COMMON_PLACE_IDS = [
   "univ-station",
   "station-piazza",

@@ -1,5 +1,6 @@
 import { holidayInfo } from "../lib/hk-time";
-import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, placeById, pointFromMap } from "../lib/places";
+import { nominatimSearchUrl } from "../lib/geocode";
+import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, placeById, pointFromMap, searchPlaces, typedPin } from "../lib/places";
 import { advise, hkDate } from "../lib/recommend";
 import { servicePicture } from "../lib/routes";
 import { walkApps } from "../lib/walk-links";
@@ -168,6 +169,22 @@ expect(here.kind === "pin", here.kind);
 const onStop = currentPositionPoint(placeById("science").lat, placeById("science").lng);
 expect(onStop.name === "当前位置" && onStop.id !== "science", "current position does not snap to a stop");
 
+const scienceHits = searchPlaces("科学馆");
+expect(scienceHits.length === 1 && scienceHits[0].id === "science", scienceHits.map((item) => item.name).join(","));
+const collegeHits = searchPlaces("书院");
+expect(collegeHits.length > 1, `书院 should list several places, got ${collegeHits.length}`);
+expect(searchPlaces("没有这个地方").length === 0, "unknown campus text has no local match");
+const offCampus = typedPin(22.5, 114.3, "沙田站");
+expect(offCampus.name === "沙田站" && offCampus.kind === "pin" && offCampus.lat === 22.5 && offCampus.lng === 114.3, "typed pin keeps the query and coordinates");
+const campusGeocode = new URL(nominatimSearchUrl("沙田站", "campus"));
+const hongKongGeocode = new URL(nominatimSearchUrl("沙田站", "hongkong"));
+expect(campusGeocode.searchParams.get("q") === "沙田站", campusGeocode.search);
+expect(campusGeocode.searchParams.get("bounded") === "1", campusGeocode.search);
+expect(campusGeocode.searchParams.get("viewbox") === "114.195,22.433,114.218,22.408", campusGeocode.search);
+expect(hongKongGeocode.searchParams.get("viewbox") === "113.83,22.56,114.44,22.15", hongKongGeocode.search);
+expect(campusGeocode.searchParams.get("countrycodes") !== "hk", "countrycodes=hk returns nothing");
+expect(!campusGeocode.searchParams.has("key") && !campusGeocode.search.includes("api_key"), "nominatim must not use an API key");
+
 const apps = walkApps(placeById("univ-station"), placeById("srr"));
 expect(apps.map((app) => app.label).join(",") === "Google 地图,苹果地图,高德地图,腾讯地图,百度地图", apps.map((app) => app.label).join(","));
 const google = apps.find((app) => app.id === "google");
@@ -232,7 +249,7 @@ if (legTrip.status === "bus") {
   }
   const alightGoogle = walkApps(legTrip.bus.alight, end).find((app) => app.id === "google");
   const campusPin = `${CAMPUS_CENTER.lat.toFixed(6)},${CAMPUS_CENTER.lng.toFixed(6)}`;
-  expect(alightGoogle?.href.includes(`${legTrip.bus.alight.lat.toFixed(6)},${legTrip.bus.alight.lng.toFixed(6)}`), alightGoogle?.href ?? "");
+  expect(Boolean(alightGoogle?.href.includes(`${legTrip.bus.alight.lat.toFixed(6)},${legTrip.bus.alight.lng.toFixed(6)}`)), alightGoogle?.href ?? "");
   expect(!alightGoogle?.href.includes(campusPin), `alight leg must not start at the campus center ${alightGoogle?.href}`);
   expect(!alightGoogle?.href.includes(`${start.lat.toFixed(6)},${start.lng.toFixed(6)}`), "alight leg must not start at the chosen start");
   console.log("google 下车站 → 终点", legTrip.bus.alight.name, "→", end.name, alightGoogle?.href);

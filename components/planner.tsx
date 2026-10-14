@@ -7,7 +7,16 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CampusMap } from "@/components/campus-map";
-import { currentPositionPoint, distanceMeters, commonPlaces, nearbyStops, otherStops, type Point } from "@/lib/places";
+import {
+  currentPositionPoint,
+  distanceMeters,
+  commonPlaces,
+  nearbyStops,
+  otherStops,
+  searchPlaces,
+  typedPin,
+  type Point,
+} from "@/lib/places";
 import { advise, formatWait, type BusOption, type TripAdvice } from "@/lib/recommend";
 import { ROUTES, TERM_LABEL, routeWhen, servicePicture, timetableLabel, type ServicePicture } from "@/lib/routes";
 import { walkApps, type WalkEnd } from "@/lib/walk-links";
@@ -40,11 +49,18 @@ export function Planner() {
   const [mode, setMode] = useState<PickMode>("start");
   const [locating, setLocating] = useState(false);
   const [locationNote, setLocationNote] = useState<string | null>(null);
+  const [placeQuery, setPlaceQuery] = useState("");
+  const [placeMatches, setPlaceMatches] = useState<Point[]>([]);
+  const [placeNote, setPlaceNote] = useState<string | null>(null);
+  const [lookingUp, setLookingUp] = useState(false);
   const endRef = useRef(end);
+  const startRef = useRef(start);
   const locatingRef = useRef(false);
+  const lookingRef = useRef(false);
   useEffect(() => {
     endRef.current = end;
-  }, [end]);
+    startRef.current = start;
+  }, [end, start]);
   const nowMs = useSyncExternalStore(subscribeClock, getClockSnapshot, getServerClock);
   const picture = nowMs === 0 ? null : servicePicture(new Date(nowMs));
 
@@ -55,6 +71,8 @@ export function Planner() {
 
   function choose(point: Point) {
     setLocationNote(null);
+    setPlaceNote(null);
+    setPlaceMatches([]);
     if (mode === "start") {
       setStart(point);
       if (!end) setMode("end");
@@ -62,6 +80,62 @@ export function Planner() {
     }
     setEnd(point);
     if (!start) setMode("start");
+  }
+
+  function assignLookup(point: Point, pickedMode: PickMode, endEmpty: boolean, startEmpty: boolean) {
+    setLocationNote(null);
+    setPlaceNote(null);
+    setPlaceMatches([]);
+    if (pickedMode === "start") {
+      setStart(point);
+      if (endEmpty) setMode("end");
+      return;
+    }
+    setEnd(point);
+    if (startEmpty) setMode("start");
+  }
+
+  function missedLookup(pickedMode: PickMode) {
+    setPlaceNote(pickedMode === "start" ? "没有找到这个地点，起点没改。" : "没有找到这个地点，终点没改。");
+  }
+
+  async function lookupPlace() {
+    const text = placeQuery.trim();
+    const pickedMode = mode;
+    if (!text) {
+      setPlaceMatches([]);
+      setPlaceNote("请先输入地点。");
+      return;
+    }
+    const found = searchPlaces(text);
+    if (found.length === 1) {
+      assignLookup(found[0], pickedMode, !end, !start);
+      return;
+    }
+    if (found.length > 1) {
+      setPlaceMatches(found);
+      setPlaceNote("找到多个地点，点一个用上。");
+      return;
+    }
+    if (lookingRef.current) return;
+    lookingRef.current = true;
+    setLookingUp(true);
+    setPlaceMatches([]);
+    setPlaceNote(null);
+    try {
+      const response = await fetch(`/api/geocode?q=${encodeURIComponent(text)}`);
+      const body = (await response.json()) as { found?: boolean; lat?: number; lng?: number };
+      if (!response.ok || !body.found || typeof body.lat !== "number" || typeof body.lng !== "number") {
+        missedLookup(pickedMode);
+        return;
+      }
+      assignLookup(typedPin(body.lat, body.lng, text), pickedMode, !endRef.current, !startRef.current);
+    } catch {
+      missedLookup(pickedMode);
+    } finally {
+      lookingRef.current = false;
+      setLookingUp(false);
+    }
   }
 
   function locateStart() {
@@ -139,6 +213,37 @@ export function Planner() {
                   设置终点
                 </Button>
               </div>
+              <form
+                className="flex gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void lookupPlace();
+                }}
+              >
+                <input
+                  value={placeQuery}
+                  onChange={(event) => {
+                    setPlaceQuery(event.target.value);
+                    setPlaceMatches([]);
+                  }}
+                  placeholder="输入地点名称"
+                  aria-label="地点名称"
+                  className="h-9 min-w-0 flex-1 rounded-lg bg-background px-3 text-sm ring-1 ring-foreground/10 outline-none"
+                />
+                <Button type="submit" variant="outline" disabled={lookingUp}>
+                  {lookingUp ? "正在查找…" : "定位"}
+                </Button>
+              </form>
+              {placeMatches.length > 1 ? (
+                <div className="flex flex-wrap gap-2">
+                  {placeMatches.map((place) => (
+                    <Button key={place.id} type="button" size="sm" variant="outline" onClick={() => choose(place)}>
+                      {place.name}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+              {placeNote ? <p className="text-sm text-destructive">{placeNote}</p> : null}
               <Button variant="outline" onClick={locateStart} disabled={locating}>
                 {locating ? "正在定位…" : "使用当前位置"}
               </Button>
