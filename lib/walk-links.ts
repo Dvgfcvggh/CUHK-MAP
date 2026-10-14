@@ -1,10 +1,12 @@
 /**
  * Walking handoff. No API keys.
- * Every link carries both ends: WGS84 coordinates and a name.
- * Google uses saddr/daddr lat,lng+(name): the directions API rejects a name
- * glued onto origin=, and that form still opens both ends on foot.
+ * Both ends are WGS84. Coordinates decide the route; a name is only a label.
+ * Google ignores a parenthetical name and searches that text, so campus names
+ * such as 科学馆 fail. Its URL is coordinates only.
+ * Apple keeps name@lat,lng, where the coordinate after @ is the place.
+ * Amap puts lng,lat before the name. Tencent routes on fromcoord/tocoord.
+ * Baidu prefers latlng over name. Those four still carry both.
  * Baidu is told the coordinates are WGS84 with coord_type=wgs84.
- * Amap and Tencent keep their given parameter order; names are encoded.
  */
 
 export type WalkEnd = { lat: number; lng: number; name: string };
@@ -33,7 +35,7 @@ export function walkApps(origin: WalkEnd, destination: WalkEnd): WalkApp[] {
     {
       id: "google",
       label: "Google 地图",
-      href: `https://www.google.com/maps?saddr=${oLat},${oLng}+(${oName})&daddr=${dLat},${dLng}+(${dName})&dirflg=w`,
+      href: `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLng}&destination=${dLat},${dLng}&travelmode=walking`,
     },
     {
       id: "apple",
