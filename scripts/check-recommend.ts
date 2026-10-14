@@ -214,7 +214,7 @@ expect(campusGeocode.searchParams.get("countrycodes") !== "hk", "countrycodes=hk
 expect(!campusGeocode.searchParams.has("key") && !campusGeocode.search.includes("api_key"), "nominatim must not use an API key");
 
 const apps = walkApps(placeById("univ-station"), placeById("srr"));
-expect(apps.map((app) => app.label).join(",") === "Google 地图,苹果地图,高德地图,腾讯地图,百度地图", apps.map((app) => app.label).join(","));
+expect(apps.map((app) => app.label).join(",") === "苹果地图,高德地图,腾讯地图,百度地图,谷歌地图（有时无法正常使用）", apps.map((app) => app.label).join(","));
 const google = apps.find((app) => app.id === "google");
 const apple = apps.find((app) => app.id === "apple");
 const amap = apps.find((app) => app.id === "amap");

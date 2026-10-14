@@ -53,11 +53,6 @@ export function walkApps(origin: WalkEnd, destination: WalkEnd): WalkApp[] {
 
   return [
     {
-      id: "google",
-      label: "Google 地图",
-      href: `https://www.google.com/maps/dir/${oLat},${oLng}/${dLat},${dLng}/data=!3m1!4b1!4m14!4m13!1m5!1m1!1s0x0:0x0!2m2!1d${oLng}!2d${oLat}!1m5!1m1!1s0x0:0x0!2m2!1d${dLng}!2d${dLat}!3e2`,
-    },
-    {
       id: "apple",
       label: "苹果地图",
       href: `https://maps.apple.com/?saddr=${oName}@${oLat},${oLng}&daddr=${dName}@${dLat},${dLng}&dirflg=w`,
@@ -76,6 +71,11 @@ export function walkApps(origin: WalkEnd, destination: WalkEnd): WalkApp[] {
       id: "baidu",
       label: "百度地图",
       href: `https://api.map.baidu.com/direction?origin=${baiduFrom}&destination=${baiduTo}&mode=walking&region=${encodeURIComponent("香港")}&output=html&coord_type=wgs84&src=webapp.cuhk.campusbus`,
+    },
+    {
+      id: "google",
+      label: "谷歌地图（有时无法正常使用）",
+      href: `https://www.google.com/maps/dir/${oLat},${oLng}/${dLat},${dLng}/data=!3m1!4b1!4m14!4m13!1m5!1m1!1s0x0:0x0!2m2!1d${oLng}!2d${oLat}!1m5!1m1!1s0x0:0x0!2m2!1d${dLng}!2d${dLat}!3e2`,
     },
   ];
 }
