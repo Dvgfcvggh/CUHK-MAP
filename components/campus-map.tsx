@@ -179,11 +179,8 @@ export function CampusMap({ start, end, boardId, alightId, onPick }: CampusMapPr
   }, []);
 
   return (
-    <div className="relative h-full min-h-72 overflow-hidden rounded-2xl ring-1 ring-foreground/10">
-      <div ref={nodeRef} className="h-full min-h-72 w-full" />
-      <p className="pointer-events-none absolute bottom-3 left-3 z-[500] rounded-full bg-card/90 px-3 py-1 text-xs text-muted-foreground shadow-sm">
-        灰点是校巴站 · 绿点起点 · 红点终点 · OpenStreetMap
-      </p>
+    <div className="relative h-full overflow-hidden rounded-2xl ring-1 ring-foreground/10">
+      <div ref={nodeRef} className="h-full w-full" />
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { Bus, Footprints } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { CampusMap } from "@/components/campus-map";
 import {
   currentPositionPoint,
@@ -21,6 +20,20 @@ import { advise, formatWait, type BusOption, type TripAdvice } from "@/lib/recom
 import { ROUTES, TERM_LABEL, routeWhen, servicePicture, timetableLabel, type ServicePicture } from "@/lib/routes";
 import { walkApps, type WalkEnd } from "@/lib/walk-links";
 import { cn } from "@/lib/utils";
+
+const tap = "h-11 min-h-11 px-3.5";
+
+function inkFor(hex: string): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  if (!Number.isFinite(n)) return "#fff";
+  const channel = (value: number) => {
+    const s = value / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const y =
+    0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255);
+  return y > 0.18 ? "#120c08" : "#fff";
+}
 
 let clockSnapshot = 0;
 
@@ -182,18 +195,22 @@ export function Planner() {
   const alightId = highlighted?.alight.id;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 pb-16 sm:py-6">
-      <header className="flex flex-col gap-2">
-        <p className="text-xs font-medium tracking-widest text-primary uppercase">香港中文大学</p>
-        <h1 className="font-heading text-3xl text-foreground sm:text-4xl">中大穿梭校巴</h1>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-5 pb-16 sm:py-8">
+      <header className="flex max-w-[65ch] flex-col gap-3">
+        <h1 className="font-heading text-balance text-4xl leading-tight text-foreground sm:text-5xl">中大穿梭校巴</h1>
+        <p className="text-sm leading-6 text-muted-foreground sm:text-base">
           {TERM_LABEL}。班次是静态时刻表，非实时，以交通处为准。按香港时间区分上课日、晚间和假日。选出起点和终点，看该乘哪一路、在哪一站上、在哪一站下。
         </p>
       </header>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <div className="h-[320px] sm:h-[420px] lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:min-h-[560px]">
-          <CampusMap start={start} end={end} boardId={boardId} alightId={alightId} onPick={choose} />
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-6">
+        <div className="lg:sticky lg:top-4">
+          <div className="h-60 sm:h-80 lg:h-[calc(100dvh-16.5rem)]">
+            <CampusMap start={start} end={end} boardId={boardId} alightId={alightId} onPick={choose} />
+          </div>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            灰点是校巴站 · 绿点起点 · 红点终点 · OpenStreetMap
+          </p>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -206,10 +223,14 @@ export function Planner() {
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               <div className="grid grid-cols-2 gap-2">
-                <Button variant={mode === "start" ? "default" : "outline"} onClick={() => setMode("start")}>
+                <Button
+                  className={tap}
+                  variant={mode === "start" ? "default" : "outline"}
+                  onClick={() => setMode("start")}
+                >
                   设置起点
                 </Button>
-                <Button variant={mode === "end" ? "default" : "outline"} onClick={() => setMode("end")}>
+                <Button className={tap} variant={mode === "end" ? "default" : "outline"} onClick={() => setMode("end")}>
                   设置终点
                 </Button>
               </div>
@@ -228,26 +249,28 @@ export function Planner() {
                   }}
                   placeholder="输入地点名称"
                   aria-label="地点名称"
-                  className="h-9 min-w-0 flex-1 rounded-lg bg-background px-3 text-sm ring-1 ring-foreground/10 outline-none"
+                  className="h-11 min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-background px-3.5 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 />
-                <Button type="submit" variant="outline" disabled={lookingUp}>
+                <Button type="submit" variant="outline" className={tap} disabled={lookingUp}>
                   {lookingUp ? "正在查找…" : "定位"}
                 </Button>
               </form>
               {placeMatches.length > 1 ? (
                 <div className="flex flex-wrap gap-2">
                   {placeMatches.map((place) => (
-                    <Button key={place.id} type="button" size="sm" variant="outline" onClick={() => choose(place)}>
+                    <Button key={place.id} type="button" variant="outline" className={tap} onClick={() => choose(place)}>
                       {place.name}
                     </Button>
                   ))}
                 </div>
               ) : null}
-              {placeNote ? <p className="text-sm text-destructive">{placeNote}</p> : null}
-              <Button variant="outline" onClick={locateStart} disabled={locating}>
+              {placeNote ? (
+                <StatusNote tone={placeNote === "找到多个地点，点一个用上。" ? "hint" : "error"}>{placeNote}</StatusNote>
+              ) : null}
+              <Button variant="outline" className={tap} onClick={locateStart} disabled={locating}>
                 {locating ? "正在定位…" : "使用当前位置"}
               </Button>
-              {locationNote ? <p className="text-sm text-destructive">{locationNote}</p> : null}
+              {locationNote ? <StatusNote tone="error">{locationNote}</StatusNote> : null}
               <SelectionRow label="起点" point={start} onClear={() => setStart(null)} />
               <SelectionRow label="终点" point={end} onClear={() => setEnd(null)} />
               <p className="text-sm leading-6 text-muted-foreground">
@@ -275,34 +298,38 @@ export function Planner() {
         </div>
       </div>
 
-      <Separator />
-      <section className="grid gap-3">
-        <h2 className="font-heading text-xl">收录的路线</h2>
-        <p className="text-sm leading-6 text-muted-foreground">
+      <section className="flex flex-col border-t border-border pt-10">
+        <h2 className="font-heading text-2xl leading-tight">收录的路线</h2>
+        <p className="mt-2 max-w-[65ch] text-sm leading-6 text-muted-foreground">
           整理自交通处穿梭校巴和转堂校巴页面（2026 年 10 月）。收费小巴不在这里。校巴是中大学生和教职员专车。
         </p>
-        <ul className="grid gap-2 sm:grid-cols-2">
+        <ul className="mt-5 grid gap-2 sm:grid-cols-2">
           {ROUTES.map((route) => (
-            <li key={route.id} className="flex items-start gap-3 rounded-xl bg-card px-3 py-3 ring-1 ring-foreground/10">
+            <li key={route.id} className="flex items-start gap-3 rounded-xl bg-card px-3.5 py-3.5 ring-1 ring-foreground/10">
               <span
-                className="mt-0.5 inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-semibold text-white"
-                style={{ background: route.color }}
+                className="inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-sm font-semibold"
+                style={{ background: route.color, color: inkFor(route.color) }}
               >
                 {route.id}
               </span>
               <span>
-                <span className="block text-sm font-medium">
+                <span className="block text-base leading-6 font-medium">
                   {route.name}
-                  <span className="ml-2 font-normal text-muted-foreground">{routeWhen(route)}</span>
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">{routeWhen(route)}</span>
                 </span>
-                <span className="mt-1 block text-xs leading-5 text-muted-foreground">{timetableLabel(route)}</span>
+                <span className="mt-1 block text-sm leading-5 text-muted-foreground">{timetableLabel(route)}</span>
               </span>
             </li>
           ))}
         </ul>
-        <p className="text-xs leading-5 text-muted-foreground">
+        <p className="mt-5 max-w-[65ch] text-xs leading-5 text-muted-foreground">
           星期一至六（公众假期除外）的晚间按 N 线 19:00–23:30，没有单独开关。星期日和香港公众假期走假日线 H。转堂校巴 5、6A、6B、7 只在星期一至五的时段里建议，星期六不开。步行时间按校园分区估算。出处：
-          <a className="underline" href="https://transport.cuhk.edu.hk/" target="_blank" rel="noopener noreferrer">
+          <a
+            className="underline underline-offset-4 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            href="https://transport.cuhk.edu.hk/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             香港中文大学交通处
           </a>
           。
@@ -322,14 +349,14 @@ function SelectionRow({
   onClear: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
-      <p className="text-sm">
+    <div className="flex min-h-12 items-center justify-between gap-3 rounded-lg bg-muted px-3 py-1">
+      <p className="text-sm leading-6">
         <span className="text-muted-foreground">{label}</span>
         <span className="mx-2 text-muted-foreground">·</span>
         <span className="font-medium">{point ? point.name : "还没选"}</span>
       </p>
       {point ? (
-        <Button variant="ghost" size="sm" onClick={onClear}>
+        <Button variant="ghost" className="h-11 min-h-11 px-3" onClick={onClear}>
           清除
         </Button>
       ) : null}
@@ -349,17 +376,16 @@ function PlacePicker({
   onPick: (point: Point) => void;
 }) {
   return (
-    <section>
-      <h2 className="mb-2 text-sm font-medium">{title}</h2>
+    <section className="flex flex-col gap-2">
+      <h2 className="text-sm font-medium">{title}</h2>
       <div className="flex flex-wrap gap-2">
         {places.map((place) => {
           const selected = place.id === selectedId;
           return (
             <Button
               key={place.id}
-              size="sm"
               variant={selected ? "default" : "outline"}
-              className="h-9"
+              className={tap}
               onClick={() => onPick(place)}
             >
               {place.name}
@@ -400,7 +426,7 @@ function ResultCard({
 
   if (!advice) {
     return (
-      <Card>
+      <Card aria-busy="true">
         <CardHeader>
           <CardTitle>正在对时刻表</CardTitle>
           <CardDescription>按香港时间看下一班大概几点开出。</CardDescription>
@@ -410,13 +436,15 @@ function ResultCard({
   }
 
   const fine = <FinePrint picture={picture} />;
+  const answerTitle = "text-xl leading-snug sm:text-2xl";
+  const answerLead = "text-base leading-7 text-foreground/85";
 
   if (advice.status === "same") {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>起点和终点是同一个地方</CardTitle>
-          <CardDescription>不用乘车。换一个终点再看。</CardDescription>
+          <CardTitle className={answerTitle}>起点和终点是同一个地方</CardTitle>
+          <CardDescription className={answerLead}>不用乘车。换一个终点再看。</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -426,11 +454,11 @@ function ResultCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Footprints className="size-4" />
+          <CardTitle className={cn(answerTitle, "flex items-center gap-2")}>
+            <Footprints className="size-5 shrink-0" />
             走过去就好
           </CardTitle>
-          <CardDescription>
+          <CardDescription className={answerLead}>
             从{start.name}到{end.name}大约 {advice.directMin} 分钟，这段路不必等校巴。
           </CardDescription>
         </CardHeader>
@@ -449,11 +477,11 @@ function ResultCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bus className="size-4" />
+          <CardTitle className={cn(answerTitle, "flex items-center gap-2")}>
+            <Bus className="size-5 shrink-0" />
             {title}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className={answerLead}>
             {advice.bus.routeName}。{advice.bus.timetable}。全程大约 {advice.bus.total} 分钟，含走到车站和等车。直接走大约{" "}
             {advice.directMin} 分钟。
           </CardDescription>
@@ -473,11 +501,11 @@ function ResultCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Footprints className="size-4" />
+          <CardTitle className={cn(answerTitle, "flex items-center gap-2")}>
+            <Footprints className="size-5 shrink-0" />
             步行更快
           </CardTitle>
-          <CardDescription>
+          <CardDescription className={answerLead}>
             从{start.name}走到{end.name}大约 {advice.directMin} 分钟。
             {advice.bus
               ? ` 乘 ${advice.bus.routeId} 号线含等车大约要 ${advice.bus.total} 分钟，省不下来。`
@@ -498,8 +526,8 @@ function ResultCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>现在等不到合适的班次</CardTitle>
-          <CardDescription>
+          <CardTitle className={answerTitle}>现在等不到合适的班次</CardTitle>
+          <CardDescription className={answerLead}>
             {ended
               ? `${advice.bus.routeId} 号线今天的班次已经过了末班，或还没到你要坐的那一班。`
               : `${advice.bus.routeId} 号线下一班是 ${advice.bus.departLabel}，还要等 ${advice.bus.wait} 分钟，太久了。`}
@@ -518,8 +546,8 @@ function ResultCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>没有顺路的校巴</CardTitle>
-        <CardDescription>
+        <CardTitle className={answerTitle}>没有顺路的校巴</CardTitle>
+        <CardDescription className={answerLead}>
           穿梭校巴只沿固定方向开，{start.name}到{end.name}没有顺路班次。步行大约 {advice.directMin} 分钟。
         </CardDescription>
       </CardHeader>
@@ -535,16 +563,21 @@ function BusDetail({ bus, compact = false }: { bus: BusOption; compact?: boolean
   return (
     <div className="flex flex-col gap-3 rounded-xl bg-muted/70 p-3">
       <div className="flex items-center gap-2">
-        <Badge style={{ background: bus.color, color: "#fff" }}>{bus.routeId}</Badge>
-        <span className="text-sm font-medium">{bus.routeName}</span>
+        <Badge
+          className="h-7 min-w-7 px-2 text-sm font-semibold"
+          style={{ background: bus.color, color: inkFor(bus.color) }}
+        >
+          {bus.routeId}
+        </Badge>
+        <span className="text-base font-medium">{bus.routeName}</span>
       </div>
-      <ol className="grid gap-2 text-sm">
+      <ol className="grid gap-2 text-base leading-6">
         <li>
-          <span className="text-muted-foreground">上车</span> {bus.board.name}
+          <span className="text-muted-foreground">上车</span> <span className="font-medium">{bus.board.name}</span>
           <span className="text-muted-foreground"> · 走到车站约 {bus.walkIn} 分钟</span>
         </li>
         <li>
-          <span className="text-muted-foreground">下车</span> {bus.alight.name}
+          <span className="text-muted-foreground">下车</span> <span className="font-medium">{bus.alight.name}</span>
           <span className="text-muted-foreground"> · 下车后再走约 {bus.walkOut} 分钟</span>
         </li>
       </ol>
@@ -605,13 +638,13 @@ function WalkChoices({ title, origin, destination }: { title: string; origin: Wa
   const apps = walkApps(origin, destination);
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-muted/50 p-3" role="group" aria-label={title}>
-      <p className="text-sm font-medium">{title}</p>
-      <p className="text-xs leading-5 text-muted-foreground">先选一个地图，再打开步行路线。</p>
+      <p className="text-base font-medium">{title}</p>
+      <p className="text-sm leading-6 text-muted-foreground">先选一个地图，再打开步行路线。</p>
       <div className="flex flex-wrap gap-2">
         {apps.map((app) => (
           <a
             key={app.id}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-9")}
+            className={cn(buttonVariants({ variant: "outline" }), tap)}
             href={app.href}
             target="_blank"
             rel="noopener noreferrer"
@@ -621,6 +654,24 @@ function WalkChoices({ title, origin, destination }: { title: string; origin: Wa
         ))}
       </div>
     </div>
+  );
+}
+
+function StatusNote({ tone, children }: { tone: "error" | "hint"; children: string }) {
+  if (tone === "hint") {
+    return (
+      <p role="status" className="text-sm leading-6 text-muted-foreground">
+        {children}
+      </p>
+    );
+  }
+  return (
+    <p
+      role="alert"
+      className="rounded-lg bg-destructive/10 px-3 py-2 text-sm leading-6 text-[color-mix(in_oklch,var(--destructive),var(--foreground)_42%)]"
+    >
+      {children}
+    </p>
   );
 }
 

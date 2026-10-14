@@ -130,5 +130,14 @@
   }
   html {
     @apply font-sans;
+    scrollbar-color: oklch(0.72 0.025 70) transparent;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 24%, var(--background));
+    color: var(--foreground);
+  }
+  input,
+  textarea {
+    caret-color: var(--primary);
   }
 }
