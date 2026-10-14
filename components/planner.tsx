@@ -208,8 +208,6 @@ export function Planner() {
         </p>
       </header>
 
-      <StopRow selectedId={mode === "start" ? start?.id : end?.id} onPick={choose} />
-
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-6">
         <div className="lg:sticky lg:top-4">
           <div className="h-60 sm:h-80 lg:h-[calc(100dvh-16.5rem)]">
@@ -292,6 +290,8 @@ export function Planner() {
             </CardContent>
           </Card>
 
+          <StopRow selectedId={mode === "start" ? start?.id : end?.id} onPick={choose} />
+
           <ResultCard start={start} end={end} advice={advice} picture={picture} />
         </div>
       </div>
@@ -373,21 +373,23 @@ function StopRow({ selectedId, onPick }: { selectedId?: string; onPick: (point: 
   useEffect(() => {
     if (open) return;
     const row = rowRef.current;
-    const parent = row?.parentElement;
-    if (!row || !parent) return;
+    if (!row) return;
 
     let lastWidth = -1;
     const measure = () => {
-      const width = parent.clientWidth;
+      const width = row.clientWidth;
       if (width === lastWidth) return;
       lastWidth = width;
       const chips = [...row.querySelectorAll<HTMLElement>("[data-stop]")];
       if (chips.length === 0) return;
       chips.forEach((chip) => chip.classList.remove("hidden"));
-      const firstTop = chips[0].offsetTop;
+      const rowTop = row.getBoundingClientRect().top;
+      const tops: number[] = [];
       let count = chips.length;
       for (let i = 0; i < chips.length; i += 1) {
-        if (chips[i].offsetTop > firstTop + 1) {
+        const top = Math.round(chips[i].getBoundingClientRect().top - rowTop);
+        if (!tops.includes(top)) tops.push(top);
+        if (tops.length > 2) {
           count = Math.max(1, i);
           break;
         }
@@ -399,19 +401,44 @@ function StopRow({ selectedId, onPick }: { selectedId?: string; onPick: (point: 
 
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(parent);
+    observer.observe(row);
     return () => observer.disconnect();
   }, [open]);
 
   return (
-    <section className="flex items-start gap-2" aria-label="站点">
+    <section className="flex flex-col gap-2">
+      <h2>
+        <button
+          type="button"
+          className="flex min-h-11 items-center gap-1.5 rounded-md text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          aria-expanded={open}
+          aria-controls="campus-stops"
+          onClick={() => setOpen((value) => !value)}
+        >
+          <svg
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+            className={cn(
+              "size-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
+              open && "rotate-90",
+            )}
+          >
+            <path
+              d="M6 3.5 11 8 6 12.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          校巴站点
+        </button>
+      </h2>
       <div
         id="campus-stops"
         ref={rowRef}
-        className={cn(
-          "flex min-w-0 flex-1 flex-wrap gap-2",
-          !open && !ready && "max-h-11 overflow-hidden",
-        )}
+        className={cn("flex flex-wrap gap-2", !open && !ready && "max-h-24 overflow-hidden")}
       >
         {stopRowPlaces.map((place, index) => {
           const selected = place.id === selectedId;
@@ -430,16 +457,6 @@ function StopRow({ selectedId, onPick }: { selectedId?: string; onPick: (point: 
           );
         })}
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        className={cn(tap, "shrink-0")}
-        aria-expanded={open}
-        aria-controls="campus-stops"
-        onClick={() => setOpen((value) => !value)}
-      >
-        {open ? "收起" : "展开"}
-      </Button>
     </section>
   );
 }
