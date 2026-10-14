@@ -1,11 +1,12 @@
 import { clockLabel, hkClock, hkWallTime, parseClock } from "@/lib/hk-time";
-import { placeById, walkMinutes, type Point } from "@/lib/places";
+import { distanceMeters, placeById, walkMinutes, type Point } from "@/lib/places";
 import { inServiceWindow, routesOnClock, timetableLabel, type RouteStop, type ShuttleRoute } from "@/lib/routes";
 
-const SHORT_WALK = 6;
 const MAX_WAIT = 40;
-/** Walking is the headline only when it beats the full bus trip by this many minutes. */
-const WALK_SAVES_MINUTES = 15;
+/** Straight-line distance at or under this is a short trip: say 走过去就好, and still show a running bus. */
+export const SHORT_TRIP_METERS = 500;
+/** Show 步行更快 when walking beats the full bus trip by this many minutes. The bus stays on the page. */
+export const WALK_SAVES_MINUTES = 15;
 
 export type BusOption = {
   routeId: string;
@@ -28,7 +29,7 @@ export type BusOption = {
 
 export type TripAdvice =
   | { status: "same" }
-  | { status: "walk"; directMin: number; because: "short" | "faster"; bus?: BusOption }
+  | { status: "walk"; directMin: number; because: "short" }
   | { status: "bus"; directMin: number; bus: BusOption }
   | { status: "closed"; directMin: number; bus: BusOption }
   | { status: "none"; directMin: number };
@@ -148,10 +149,19 @@ function better(next: BusOption, current: BusOption | undefined, preferRunning: 
   return next.walkIn + next.walkOut < current.walkIn + current.walkOut;
 }
 
+/** True when the straight-line trip is short enough to mention 走过去就好. */
+export function isShortTrip(origin: Point, dest: Point): boolean {
+  return distanceMeters(origin.lat, origin.lng, dest.lat, dest.lng) <= SHORT_TRIP_METERS;
+}
+
+/** True when walking beats this bus by at least WALK_SAVES_MINUTES. Does not hide the bus. */
+export function walkingBeatsBus(directMin: number, bus: BusOption | undefined): boolean {
+  return bus?.total != null && bus.total - directMin >= WALK_SAVES_MINUTES;
+}
+
 export function advise(origin: Point, dest: Point, now: Date): TripAdvice {
   const direct = walkMinutes(origin, dest);
   if (origin.id === dest.id || direct === 0) return { status: "same" };
-  if (direct <= SHORT_WALK) return { status: "walk", directMin: direct, because: "short" };
 
   let bestRunning: BusOption | undefined;
   let bestAny: BusOption | undefined;
@@ -169,15 +179,13 @@ export function advise(origin: Point, dest: Point, now: Date): TripAdvice {
     }
   }
 
-  if (bestRunning && bestRunning.total !== null && bestRunning.total - direct >= WALK_SAVES_MINUTES) {
-    return { status: "walk", directMin: direct, because: "faster", bus: bestRunning };
-  }
   if (bestRunning) {
     return { status: "bus", directMin: direct, bus: bestRunning };
   }
   if (bestAny) {
     return { status: "closed", directMin: direct, bus: bestAny };
   }
+  if (isShortTrip(origin, dest)) return { status: "walk", directMin: direct, because: "short" };
   return { status: "none", directMin: direct };
 }
 

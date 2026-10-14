@@ -15,9 +15,9 @@ import {
   typedPin,
   type Point,
 } from "@/lib/places";
-import { advise, formatWait, type BusOption, type TripAdvice } from "@/lib/recommend";
+import { advise, formatWait, isShortTrip, walkingBeatsBus, type BusOption, type TripAdvice } from "@/lib/recommend";
 import { ROUTES, TERM_LABEL, routeWhen, servicePicture, timetableLabel, type ServicePicture } from "@/lib/routes";
-import { walkApps, type WalkEnd } from "@/lib/walk-links";
+import { walkApps, walkEndsApart, type WalkEnd } from "@/lib/walk-links";
 import { cn } from "@/lib/utils";
 
 const tap = "h-11 min-h-11 px-3.5";
@@ -461,12 +461,13 @@ function ResultCard({
   }
 
   if (advice.status === "walk" && advice.because === "short") {
+    const meters = Math.round(distanceMeters(start.lat, start.lng, end.lat, end.lng));
     return (
       <Card>
         <CardHeader>
           <CardTitle className={answerTitle}>走过去就好</CardTitle>
           <CardDescription className={answerLead}>
-            从{start.name}到{end.name}大约 {advice.directMin} 分钟，这段路不必等校巴。
+            从{start.name}到{end.name}大约 {advice.directMin} 分钟，直线大约 {meters} 米，不超过 500 米。这段路没有更合适的校巴。
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -481,6 +482,7 @@ function ResultCard({
     const title = advice.bus.special
       ? `建议乘转堂校巴 ${advice.bus.routeId}`
       : `建议乘 ${advice.bus.routeId} 号线`;
+    const mentionWalk = walkingBeatsBus(advice.directMin, advice.bus) || isShortTrip(start, end);
     return (
       <Card>
         <CardHeader>
@@ -491,31 +493,12 @@ function ResultCard({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          <TripNotes start={start} end={end} directMin={advice.directMin} bus={advice.bus} />
           <BusDetail bus={advice.bus} />
           <WalkChoices title="步行到上车站" origin={start} destination={advice.bus.board} />
           {/* This leg starts at the alighting stop, not the campus center or the user's start. */}
           <WalkChoices title="从下车站步行到终点" origin={advice.bus.alight} destination={end} />
-          {fine}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (advice.status === "walk") {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className={answerTitle}>步行更快</CardTitle>
-          <CardDescription className={answerLead}>
-            从{start.name}走到{end.name}大约 {advice.directMin} 分钟。
-            {advice.bus
-              ? ` 乘 ${advice.bus.routeId} 号线含等车大约要 ${advice.bus.total} 分钟，省不下来。`
-              : ""}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {advice.bus ? <BusDetail bus={advice.bus} compact /> : null}
-          <WalkChoices title="选择地图步行" origin={start} destination={end} />
+          {mentionWalk ? <WalkChoices title="选择地图步行" origin={start} destination={end} /> : null}
           {fine}
         </CardContent>
       </Card>
@@ -536,7 +519,10 @@ function ResultCard({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          <TripNotes start={start} end={end} directMin={advice.directMin} bus={advice.bus} />
           <BusDetail bus={advice.bus} compact />
+          <WalkChoices title="步行到上车站" origin={start} destination={advice.bus.board} />
+          <WalkChoices title="从下车站步行到终点" origin={advice.bus.alight} destination={end} />
           <WalkChoices title="选择地图步行" origin={start} destination={end} />
           {fine}
         </CardContent>
@@ -557,6 +543,41 @@ function ResultCard({
         {fine}
       </CardContent>
     </Card>
+  );
+}
+
+function TripNotes({
+  start,
+  end,
+  directMin,
+  bus,
+}: {
+  start: Point;
+  end: Point;
+  directMin: number;
+  bus: BusOption;
+}) {
+  const faster = walkingBeatsBus(directMin, bus);
+  const short = isShortTrip(start, end);
+  if (!faster && !short) return null;
+  const meters = Math.round(distanceMeters(start.lat, start.lng, end.lat, end.lng));
+  const saved = bus.total != null ? bus.total - directMin : 0;
+  return (
+    <div className="flex flex-col gap-2">
+      {faster ? (
+        <div className="rounded-lg border border-border px-3 py-2">
+          <p className="text-base font-semibold">步行更快</p>
+          <p className="text-sm leading-6 text-muted-foreground">
+            从{start.name}走到{end.name}大约 {directMin} 分钟，比这路校巴少 {saved} 分钟。
+          </p>
+        </div>
+      ) : null}
+      {short ? (
+        <p className="text-sm leading-6 text-muted-foreground">
+          走过去就好。直线大约 {meters} 米，不超过 500 米。
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -638,6 +659,14 @@ function CloseStopNotes({ board, alight }: { board: Point; alight: Point }) {
 }
 
 function WalkChoices({ title, origin, destination }: { title: string; origin: WalkEnd; destination: WalkEnd }) {
+  if (!walkEndsApart(origin, destination)) {
+    return (
+      <div className="flex flex-col gap-2 border-t border-border pt-3" role="group" aria-label={title}>
+        <p className="text-base font-medium">{title}</p>
+        <p className="text-sm leading-6 text-muted-foreground">已经在这里</p>
+      </div>
+    );
+  }
   const apps = walkApps(origin, destination);
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-3" role="group" aria-label={title}>

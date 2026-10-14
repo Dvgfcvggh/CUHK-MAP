@@ -1,9 +1,9 @@
 import { holidayInfo } from "../lib/hk-time";
 import { nominatimSearchUrl } from "../lib/geocode";
 import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, placeById, pointFromMap, searchPlaces, typedPin } from "../lib/places";
-import { advise, hkDate } from "../lib/recommend";
+import { advise, hkDate, isShortTrip, walkingBeatsBus } from "../lib/recommend";
 import { servicePicture } from "../lib/routes";
-import { walkApps } from "../lib/walk-links";
+import { walkApps, walkEndsApart } from "../lib/walk-links";
 import type { TripAdvice } from "../lib/recommend";
 
 function expect(condition: boolean, message: string) {
@@ -45,16 +45,44 @@ const toSrr = advise(placeById("univ-station"), placeById("srr"), wedSoon);
 expect(toSrr.status === "bus", `station to Shaw Hall should take the bus, got ${toSrr.status}`);
 if (toSrr.status === "bus") {
   expect(toSrr.bus.total !== null && toSrr.bus.total - toSrr.directMin < 15, `saved ${toSrr.bus.total}-${toSrr.directMin}`);
+  expect(!walkingBeatsBus(toSrr.directMin, toSrr.bus), "a small gap must not count as 步行更快");
+  expect(!isShortTrip(placeById("univ-station"), placeById("srr")), "station to Shaw Hall is over 500m");
   expect(toSrr.directMin > 0, "bus result still carries the direct walk time");
 }
 
-const walkMuchFaster = advise(placeById("yiap"), placeById("univ-station"), hkDate(2026, 10, 14, 10, 0));
-expect(
-  walkMuchFaster.status === "walk" && walkMuchFaster.because === "faster",
-  `康本园 to 大学站 should stay 步行更快, got ${walkMuchFaster.status}`,
-);
-if (walkMuchFaster.status === "walk" && walkMuchFaster.bus?.total != null) {
-  expect(walkMuchFaster.bus.total - walkMuchFaster.directMin >= 15, `save ${walkMuchFaster.bus.total - walkMuchFaster.directMin}`);
+const yiap = placeById("yiap");
+const station = placeById("univ-station");
+const walkMuchFaster = advise(yiap, station, hkDate(2026, 10, 14, 10, 0));
+expect(walkMuchFaster.status === "bus", `康本园 to 大学站 should still recommend a bus, got ${walkMuchFaster.status}`);
+expect(isShortTrip(yiap, station), "康本园 to 大学站 is within 500m");
+if (walkMuchFaster.status === "bus") {
+  expect(walkingBeatsBus(walkMuchFaster.directMin, walkMuchFaster.bus), `save ${walkMuchFaster.bus.total}-${walkMuchFaster.directMin}`);
+  expect(walkMuchFaster.bus.board.id === "yiap" && walkMuchFaster.bus.alight.id === "univ-station", "board and alight stay on the result");
+  expect(!walkEndsApart(yiap, walkMuchFaster.bus.board), "boarding at the start is not a walk link");
+  expect(!walkEndsApart(walkMuchFaster.bus.alight, station), "alighting at the end is not a walk link");
+  expect(walkApps(yiap, walkMuchFaster.bus.board).length === 0, "same-point board leg must not build map links");
+  expect(walkApps(walkMuchFaster.bus.alight, station).length === 0, "same-point alight leg must not build map links");
+}
+
+const chungChi = placeById("chung-chi");
+const library = placeById("library");
+const fasterFar = advise(chungChi, library, hkDate(2026, 10, 14, 10, 0));
+expect(fasterFar.status === "bus", `崇基教学楼 to 大学图书馆 should still recommend a bus, got ${fasterFar.status}`);
+expect(!isShortTrip(chungChi, library), "崇基教学楼 to 大学图书馆 is over 500m");
+if (fasterFar.status === "bus") {
+  expect(walkingBeatsBus(fasterFar.directMin, fasterFar.bus), `save ${fasterFar.bus.total}-${fasterFar.directMin}`);
+  expect(fasterFar.bus.board.id === "chung-chi", fasterFar.bus.board.name);
+  expect(!walkEndsApart(chungChi, fasterFar.bus.board), "already at the boarding stop");
+  expect(walkApps(chungChi, fasterFar.bus.board).length === 0, "same-point board leg must not build map links");
+  expect(walkEndsApart(fasterFar.bus.alight, library), "the alighting stop and the library are different points");
+  expect(walkApps(fasterFar.bus.alight, library).length === 5, "alight leg keeps every map app");
+}
+
+const shortBus = advise(placeById("chung-chi"), placeById("science"), hkDate(2026, 10, 14, 10, 0));
+expect(shortBus.status === "bus", `崇基教学楼 to 科学馆 should keep the bus under 500m, got ${shortBus.status}`);
+expect(isShortTrip(placeById("chung-chi"), placeById("science")), "崇基教学楼 to 科学馆 is within 500m");
+if (shortBus.status === "bus") {
+  expect(!walkingBeatsBus(shortBus.directMin, shortBus.bus), "this short trip is not 15 minutes faster on foot");
 }
 
 const same = advise(placeById("na"), placeById("na"), wedSoon);
@@ -199,6 +227,15 @@ expect(Boolean(tencent?.href.includes("type=walk")), tencent?.href ?? "");
 expect(Boolean(baidu?.href.includes("mode=walking") && baidu.href.includes("coord_type=wgs84")), baidu?.href ?? "");
 expect(!apps.some((app) => app.href.includes("BAIDU_MAP") || app.href.includes("ak=")), "walk links must not need a key");
 
+const ucDown = placeById("uc-down");
+expect(walkApps(ucDown, ucDown).length === 0, "identical coordinates must not build a walk link");
+expect(!walkEndsApart(ucDown, { ...ucDown, name: "同一点" }), "same coordinates are not apart");
+const shawPair = [placeById("shaw-up"), placeById("shaw-down")] as const;
+expect(walkApps(shawPair[0], shawPair[1]).length === 0, "shared stop coordinates must not build a walk link");
+expect(walkApps(placeById("uc-up"), ucDown).length === 0, "ends within 15m must not build a walk link");
+const directSame = advise(shawPair[0], shawPair[1], wedSoon);
+expect(directSame.status === "walk" && directSame.because === "short", `same curb should say walk, got ${directSame.status}`);
+
 function expectBothEnds(
   href: string,
   origin: { lat: number; lng: number; name: string },
@@ -229,7 +266,6 @@ for (const app of apps) {
   expectBothEnds(app.href, placeById("univ-station"), placeById("srr"), app.label, app.id);
 }
 
-const chungChi = placeById("chung-chi");
 const sciencePlace = placeById("science");
 const googleToScience = walkApps(chungChi, sciencePlace).find((app) => app.id === "google");
 expect(Boolean(googleToScience?.href.includes("0x0:0x0") && googleToScience.href.endsWith("3e2")), googleToScience?.href ?? "");
@@ -259,13 +295,26 @@ console.log("recommend checks passed");
 if (toSrr.status === "bus") {
   console.log("bus", "大学站 → 邵逸夫堂", toSrr.bus.routeId, `total ${toSrr.bus.total} walk ${toSrr.directMin}`);
 }
-if (walkMuchFaster.status === "walk") {
+if (walkMuchFaster.status === "bus") {
   console.log(
-    "walk faster",
+    "short and faster, bus stays",
     "康本园 → 大学站",
-    walkMuchFaster.directMin,
-    "vs",
-    walkMuchFaster.bus?.total,
+    walkMuchFaster.bus.routeId,
+    `walk ${walkMuchFaster.directMin} bus ${walkMuchFaster.bus.total}`,
+    walkMuchFaster.bus.board.name,
+    "→",
+    walkMuchFaster.bus.alight.name,
+  );
+}
+if (fasterFar.status === "bus") {
+  console.log(
+    "faster over 500m, bus stays",
+    "崇基教学楼 → 大学图书馆",
+    fasterFar.bus.routeId,
+    `walk ${fasterFar.directMin} bus ${fasterFar.bus.total}`,
+    fasterFar.bus.board.name,
+    "→",
+    fasterFar.bus.alight.name,
   );
 }
 console.log("evening", routeOf(evening), evening.status === "bus" ? evening.bus.timetable : "");

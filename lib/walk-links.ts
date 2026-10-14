@@ -1,6 +1,10 @@
+import { distanceMeters } from "@/lib/places";
+
 /**
  * Walking handoff. No API keys.
  * Both ends are WGS84. Coordinates decide the route; a name is only a label.
+ * A leg whose ends are the same point, or within 15 metres, is not a route.
+ * Callers should say 已经在这里 and must not open a map for that pair.
  * Google's directions API snaps a campus coordinate to a nearby place, often
  * "The Chinese University of Hong Kong", so the alighting stop is lost.
  * A path of loc:lat,lng is searched as the word "loc". Instead each end is a
@@ -19,11 +23,25 @@ export type WalkApp = {
   href: string;
 };
 
+/** Ends this close are the same curb. Do not build a walking link. */
+export const SAME_WALK_METERS = 15;
+
 function coord(value: number): string {
   return value.toFixed(6);
 }
 
+function sameCoordinates(origin: WalkEnd, destination: WalkEnd): boolean {
+  return coord(origin.lat) === coord(destination.lat) && coord(origin.lng) === coord(destination.lng);
+}
+
+/** False when the two ends are one point, or within SAME_WALK_METERS. */
+export function walkEndsApart(origin: WalkEnd, destination: WalkEnd): boolean {
+  if (sameCoordinates(origin, destination)) return false;
+  return distanceMeters(origin.lat, origin.lng, destination.lat, destination.lng) > SAME_WALK_METERS;
+}
+
 export function walkApps(origin: WalkEnd, destination: WalkEnd): WalkApp[] {
+  if (!walkEndsApart(origin, destination)) return [];
   const oLat = coord(origin.lat);
   const oLng = coord(origin.lng);
   const dLat = coord(destination.lat);
