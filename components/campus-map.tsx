@@ -27,6 +27,11 @@ const CAMPUS_BOUNDS: [[number, number], [number, number]] = [
   [22.433, 114.218],
 ];
 
+function inCampus(lat: number, lng: number): boolean {
+  const [[south, west], [north, east]] = CAMPUS_BOUNDS;
+  return lat >= south && lat <= north && lng >= west && lng <= east;
+}
+
 function shifted(lat: number, lng: number, index: number): [number, number] {
   if (index === 0) return [lat, lng];
   return [lat - index * 0.00012, lng + index * 0.00014];
@@ -76,6 +81,7 @@ function drawOverlays(
   pin(view.end, "#b42318");
 
   if (!view.start || !view.end) return;
+  if (!inCampus(view.start.lat, view.start.lng) || !inCampus(view.end.lat, view.end.lng)) return;
   const fitKey = `${view.start.lat.toFixed(5)},${view.start.lng.toFixed(5)}|${view.end.lat.toFixed(5)},${view.end.lng.toFixed(5)}`;
   if (fitKey === fitKeyRef.current) return;
   fitKeyRef.current = fitKey;

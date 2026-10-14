@@ -205,6 +205,19 @@ export function pointFromMap(lat: number, lng: number): Point {
   };
 }
 
+/** GPS fix used as a start. Keeps the raw coordinates, even off campus, and does not snap to a stop. */
+export function currentPositionPoint(lat: number, lng: number): Point {
+  const zoned = pointFromMap(lat, lng);
+  return {
+    id: `here:${lat.toFixed(5)},${lng.toFixed(5)}`,
+    name: "当前位置",
+    lat,
+    lng,
+    zone: zoned.zone,
+    kind: "pin",
+  };
+}
+
 /** Other shuttle stops within `withinMeters`, nearest first. The point itself is left out. */
 export function nearbyStops(
   point: { id: string; lat: number; lng: number },

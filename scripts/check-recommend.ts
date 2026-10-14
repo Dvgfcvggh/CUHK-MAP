@@ -1,5 +1,5 @@
 import { holidayInfo } from "../lib/hk-time";
-import { distanceMeters, nearbyStops, placeById, pointFromMap } from "../lib/places";
+import { currentPositionPoint, distanceMeters, nearbyStops, placeById, pointFromMap } from "../lib/places";
 import { advise, hkDate } from "../lib/recommend";
 import { servicePicture } from "../lib/routes";
 import { walkApps } from "../lib/walk-links";
@@ -160,6 +160,13 @@ const snapped = pointFromMap(placeById("science").lat + 0.0001, placeById("scien
 expect(snapped.id === "science", `click within 45m should snap, got ${snapped.id}`);
 const free = pointFromMap(22.4, 114.19);
 expect(free.kind === "pin", `a far click should stay a pin, got ${free.id}`);
+
+const here = currentPositionPoint(22.5, 114.2);
+expect(here.name === "当前位置", here.name);
+expect(here.lat === 22.5 && here.lng === 114.2, "a GPS fix keeps its own coordinates");
+expect(here.kind === "pin", here.kind);
+const onStop = currentPositionPoint(placeById("science").lat, placeById("science").lng);
+expect(onStop.name === "当前位置" && onStop.id !== "science", "current position does not snap to a stop");
 
 const apps = walkApps(placeById("univ-station"), placeById("srr"));
 expect(apps.map((app) => app.label).join(",") === "Google 地图,苹果地图,高德地图,腾讯地图,百度地图", apps.map((app) => app.label).join(","));

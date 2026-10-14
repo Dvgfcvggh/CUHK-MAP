@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Bus, Footprints } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CampusMap } from "@/components/campus-map";
-import { distanceMeters, commonPlaces, nearbyStops, otherStops, type Point } from "@/lib/places";
+import { currentPositionPoint, distanceMeters, commonPlaces, nearbyStops, otherStops, type Point } from "@/lib/places";
 import { advise, formatWait, type BusOption, type TripAdvice } from "@/lib/recommend";
 import { ROUTES, TERM_LABEL, routeWhen, servicePicture, timetableLabel, type ServicePicture } from "@/lib/routes";
 import { walkApps, type WalkEnd } from "@/lib/walk-links";
@@ -38,6 +38,13 @@ export function Planner() {
   const [start, setStart] = useState<Point | null>(null);
   const [end, setEnd] = useState<Point | null>(null);
   const [mode, setMode] = useState<PickMode>("start");
+  const [locating, setLocating] = useState(false);
+  const [locationNote, setLocationNote] = useState<string | null>(null);
+  const endRef = useRef(end);
+  const locatingRef = useRef(false);
+  useEffect(() => {
+    endRef.current = end;
+  }, [end]);
   const nowMs = useSyncExternalStore(subscribeClock, getClockSnapshot, getServerClock);
   const picture = nowMs === 0 ? null : servicePicture(new Date(nowMs));
 
@@ -47,6 +54,7 @@ export function Planner() {
   }, [start, end, nowMs]);
 
   function choose(point: Point) {
+    setLocationNote(null);
     if (mode === "start") {
       setStart(point);
       if (!end) setMode("end");
@@ -54,6 +62,45 @@ export function Planner() {
     }
     setEnd(point);
     if (!start) setMode("start");
+  }
+
+  function locateStart() {
+    if (locatingRef.current) return;
+    if (!navigator.geolocation) {
+      setLocationNote("没有拿到位置，起点没改。");
+      return;
+    }
+    locatingRef.current = true;
+    setLocating(true);
+    setLocationNote(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        locatingRef.current = false;
+        setLocating(false);
+        const lat = position.coords?.latitude;
+        const lng = position.coords?.longitude;
+        if (typeof lat !== "number" || typeof lng !== "number" || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+          setLocationNote("没有拿到位置，起点没改。");
+          return;
+        }
+        setStart(currentPositionPoint(lat, lng));
+        if (!endRef.current) setMode("end");
+      },
+      (error) => {
+        locatingRef.current = false;
+        setLocating(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationNote("没有定位权限，起点没改。");
+          return;
+        }
+        if (error.code === error.TIMEOUT) {
+          setLocationNote("定位超时，起点没改。");
+          return;
+        }
+        setLocationNote("没有拿到位置，起点没改。");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
   }
 
   const highlighted = advice && "bus" in advice ? advice.bus : undefined;
@@ -92,6 +139,10 @@ export function Planner() {
                   设置终点
                 </Button>
               </div>
+              <Button variant="outline" onClick={locateStart} disabled={locating}>
+                {locating ? "正在定位…" : "使用当前位置"}
+              </Button>
+              {locationNote ? <p className="text-sm text-destructive">{locationNote}</p> : null}
               <SelectionRow label="起点" point={start} onClear={() => setStart(null)} />
               <SelectionRow label="终点" point={end} onClear={() => setEnd(null)} />
               <p className="text-sm leading-6 text-muted-foreground">
