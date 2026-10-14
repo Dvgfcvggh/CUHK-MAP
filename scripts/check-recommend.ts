@@ -1,0 +1,149 @@
+import { holidayInfo } from "../lib/hk-time";
+import { distanceMeters, nearbyStops, placeById, pointFromMap } from "../lib/places";
+import { advise, hkDate } from "../lib/recommend";
+import { servicePicture } from "../lib/routes";
+import { walkApps } from "../lib/walk-links";
+import type { TripAdvice } from "../lib/recommend";
+
+function expect(condition: boolean, message: string) {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+function routeOf(advice: TripAdvice): string | null {
+  if ("bus" in advice && advice.bus) return advice.bus.routeId;
+  return null;
+}
+
+const wedSoon = hkDate(2026, 10, 14, 10, 12);
+const wedAfter = hkDate(2026, 10, 14, 10, 20);
+const wedNa = hkDate(2026, 10, 14, 10, 14);
+const wedMeet = hkDate(2026, 10, 14, 10, 22);
+const wedBeforeMeet = hkDate(2026, 10, 14, 9, 0);
+const wedEvening = hkDate(2026, 10, 14, 20, 10);
+const sat = hkDate(2026, 10, 17, 10, 50);
+const sun = hkDate(2026, 10, 18, 10, 50);
+const nationalDay = hkDate(2026, 10, 1, 10, 50);
+
+expect(holidayInfo(wedSoon).kind === "teaching", "14 Oct 2026 is a teaching Wednesday");
+expect(holidayInfo(sat).kind === "saturday", "17 Oct 2026 is Saturday");
+expect(holidayInfo(sun).kind === "sunday", "18 Oct 2026 is Sunday");
+expect(holidayInfo(nationalDay).name === "国庆日", holidayInfo(nationalDay).name ?? "missing holiday");
+
+const uphill = advise(placeById("univ-station"), placeById("area39-up"), wedSoon);
+expect(uphill.status === "bus", `station to area 39 should take a bus, got ${uphill.status}`);
+if (uphill.status === "bus") {
+  expect(uphill.bus.routeId === "4" || uphill.bus.routeId === "8", uphill.bus.routeId);
+}
+
+const hop = advise(placeById("science"), placeById("srr"), wedSoon);
+expect(hop.status === "walk" && hop.because === "short", `science to Shaw Hall should be a short walk, got ${hop.status}`);
+
+const same = advise(placeById("na"), placeById("na"), wedSoon);
+expect(same.status === "same", "same place");
+
+const toNa = advise(placeById("univ-station"), placeById("na"), wedSoon);
+const toNaLater = advise(placeById("univ-station"), placeById("na"), wedAfter);
+expect(toNa.status === "bus", `10:12 station to NA should catch the bus, got ${toNa.status}`);
+if (toNa.status === "bus") {
+  expect(toNa.bus.routeId === "2", `10:12 expected route 2, got ${toNa.bus.routeId}`);
+  expect(toNa.bus.alight.name === "新亚书院", toNa.bus.alight.name);
+}
+expect(toNaLater.status === "bus", `10:20 station to NA should still use a bus, got ${toNaLater.status}`);
+if (toNaLater.status === "bus") {
+  expect(toNaLater.bus.routeId === "1", `10:20 expected route 1, got ${toNaLater.bus.routeId}`);
+  expect(toNaLater.bus.alight.name === "邵逸夫堂", toNaLater.bus.alight.name);
+}
+
+const downhill = advise(placeById("na"), placeById("univ-station"), wedNa);
+expect(downhill.status === "bus", `NA to station at 10:14 should be a bus, got ${downhill.status}`);
+if (downhill.status === "bus") {
+  expect(downhill.bus.routeId === "2", `expected route 2, got ${downhill.bus.routeId}`);
+  expect(downhill.bus.board.name === "新亚书院", downhill.bus.board.name);
+  expect(downhill.bus.alight.name === "大学站", downhill.bus.alight.name);
+}
+
+const holiday = advise(placeById("univ-station"), placeById("area39-up"), sun);
+expect(holiday.status === "bus", `Sunday area 39 should use H, got ${holiday.status} ${routeOf(holiday)}`);
+if (holiday.status === "bus") {
+  expect(holiday.bus.routeId === "H", holiday.bus.routeId);
+  expect(holiday.bus.timetable.includes("08:20–23:20"), holiday.bus.timetable);
+}
+
+const saturday = advise(placeById("univ-station"), placeById("area39-up"), sat);
+expect(saturday.status === "bus" && saturday.bus.routeId === "H", `Saturday should use H, got ${routeOf(saturday)}`);
+expect(servicePicture(sat).summary.includes("假日线 H"), servicePicture(sat).summary);
+
+const publicHoliday = advise(placeById("univ-station"), placeById("area39-up"), nationalDay);
+expect(
+  publicHoliday.status === "bus" && publicHoliday.bus.routeId === "H",
+  `National Day should use H, got ${routeOf(publicHoliday)}`,
+);
+expect(servicePicture(nationalDay).summary.includes("国庆日"), servicePicture(nationalDay).summary);
+
+const evening = advise(placeById("univ-station"), placeById("area39-up"), wedEvening);
+expect(evening.status === "bus" && evening.bus.routeId === "N", `20:10 should use N, got ${routeOf(evening)}`);
+if (evening.status === "bus") {
+  expect(evening.bus.timetable.includes("19:00–23:30"), evening.bus.timetable);
+  expect(!evening.bus.special, "N is not a meet-class run");
+}
+expect(servicePicture(wedEvening).period === "evening", servicePicture(wedEvening).summary);
+
+const meet = advise(placeById("shaw-up"), placeById("cwc-down"), wedMeet);
+expect(meet.status === "bus" && meet.bus.routeId === "5", `10:22 Shaw up to CWC should be route 5, got ${routeOf(meet)}`);
+if (meet.status === "bus") {
+  expect(meet.bus.special, "route 5 is a special run");
+  expect(meet.bus.timetable.includes("09:18–17:26"), meet.bus.timetable);
+  expect(meet.bus.board.name === "逸夫书院（上行）", meet.bus.board.name);
+  expect(meet.bus.alight.name === "敬文书院（下行）", meet.bus.alight.name);
+}
+
+const closeRide = advise(placeById("science"), placeById("cwc-down"), hkDate(2026, 10, 14, 10, 0));
+expect(closeRide.status === "bus" && closeRide.bus.routeId === "3", `10:00 science to CWC should be route 3, got ${routeOf(closeRide)}`);
+if (closeRide.status === "bus") {
+  expect(closeRide.bus.board.name === "科学馆", closeRide.bus.board.name);
+}
+
+const tooEarly = advise(placeById("chung-chi"), placeById("cwc-down"), wedBeforeMeet);
+expect(routeOf(tooEarly) !== "5", `09:00 is outside route 5, got ${routeOf(tooEarly)}`);
+
+const satMeet = advise(placeById("chung-chi"), placeById("cwc-down"), sat);
+expect(routeOf(satMeet) !== "5", `Saturday must not recommend route 5, got ${routeOf(satMeet)}`);
+
+const nearScience = nearbyStops(placeById("srr"), 120);
+const science = nearScience.find((item) => item.stop.id === "science");
+expect(Boolean(science), "邵逸夫堂 should warn about 科学馆");
+expect(science !== undefined && science.meters < 120 && science.meters > 20, `distance ${science?.meters}`);
+const srrGap = distanceMeters(
+  placeById("srr").lat,
+  placeById("srr").lng,
+  placeById("science").lat,
+  placeById("science").lng,
+);
+expect(srrGap <= 120, `SRR to science is ${srrGap}`);
+
+const snapped = pointFromMap(placeById("science").lat + 0.0001, placeById("science").lng);
+expect(snapped.id === "science", `click within 45m should snap, got ${snapped.id}`);
+const free = pointFromMap(22.4, 114.19);
+expect(free.kind === "pin", `a far click should stay a pin, got ${free.id}`);
+
+const apps = walkApps(placeById("univ-station"), placeById("srr"));
+expect(apps.map((app) => app.label).join(",") === "Google 地图,苹果地图,高德地图,腾讯地图,百度地图", apps.map((app) => app.label).join(","));
+const google = apps.find((app) => app.id === "google");
+const apple = apps.find((app) => app.id === "apple");
+const amap = apps.find((app) => app.id === "amap");
+const tencent = apps.find((app) => app.id === "tencent");
+const baidu = apps.find((app) => app.id === "baidu");
+expect(Boolean(google?.href.includes("travelmode=walking")), google?.href ?? "");
+expect(Boolean(apple?.href.includes("dirflg=w")), apple?.href ?? "");
+expect(Boolean(amap?.href.includes("mode=walk")), amap?.href ?? "");
+expect(Boolean(tencent?.href.includes("type=walk")), tencent?.href ?? "");
+expect(Boolean(baidu?.href.includes("mode=walking") && baidu.href.includes("coord_type=wgs84")), baidu?.href ?? "");
+expect(!apps.some((app) => app.href.includes("BAIDU_MAP") || app.href.includes("ak=")), "walk links must not need a key");
+
+console.log("recommend checks passed");
+console.log("evening", routeOf(evening), evening.status === "bus" ? evening.bus.timetable : "");
+console.log("saturday", routeOf(saturday));
+console.log("special", routeOf(meet), meet.status === "bus" ? meet.bus.timetable : "");
+console.log("close pair 邵逸夫堂–科学馆", Math.round(srrGap), "m");
