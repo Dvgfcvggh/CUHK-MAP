@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Bus, Footprints } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +21,10 @@ import { walkApps, type WalkEnd } from "@/lib/walk-links";
 import { cn } from "@/lib/utils";
 
 const tap = "h-11 min-h-11 px-3.5";
+const chipOn =
+  "border-primary/25 bg-accent text-accent-foreground hover:bg-accent hover:text-accent-foreground";
+const segmentOn = "bg-card font-semibold text-foreground shadow-[0_1px_2px_rgba(28,28,30,0.18)] hover:bg-card";
+const segmentOff = "font-medium text-muted-foreground hover:bg-transparent hover:text-foreground";
 
 function inkFor(hex: string): string {
   const n = Number.parseInt(hex.slice(1), 16);
@@ -197,7 +200,9 @@ export function Planner() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-5 pb-16 sm:py-8">
       <header className="flex max-w-[65ch] flex-col gap-3">
-        <h1 className="font-heading text-balance text-4xl leading-tight text-foreground sm:text-5xl">中大穿梭校巴</h1>
+        <h1 className="font-heading text-balance text-[1.75rem] leading-8 font-semibold tracking-normal text-foreground sm:text-[2rem] sm:leading-9">
+          中大穿梭校巴
+        </h1>
         <p className="text-sm leading-6 text-muted-foreground sm:text-base">
           {TERM_LABEL}。班次是静态时刻表，非实时，以交通处为准。按香港时间区分上课日、晚间和假日。选出起点和终点，看该乘哪一路、在哪一站上、在哪一站下。
         </p>
@@ -222,15 +227,19 @@ export function Planner() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1 rounded-lg bg-[#e4e6ea] p-1" role="group" aria-label="起点或终点">
                 <Button
-                  className={tap}
-                  variant={mode === "start" ? "default" : "outline"}
+                  className={cn(tap, mode === "start" ? segmentOn : segmentOff)}
+                  variant="ghost"
                   onClick={() => setMode("start")}
                 >
                   设置起点
                 </Button>
-                <Button className={tap} variant={mode === "end" ? "default" : "outline"} onClick={() => setMode("end")}>
+                <Button
+                  className={cn(tap, mode === "end" ? segmentOn : segmentOff)}
+                  variant="ghost"
+                  onClick={() => setMode("end")}
+                >
                   设置终点
                 </Button>
               </div>
@@ -249,7 +258,7 @@ export function Planner() {
                   }}
                   placeholder="输入地点名称"
                   aria-label="地点名称"
-                  className="h-11 min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-background px-3.5 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  className="h-11 min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-card px-3.5 text-base text-foreground outline-none transition-[border-color,outline-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 />
                 <Button type="submit" variant="outline" className={tap} disabled={lookingUp}>
                   {lookingUp ? "正在查找…" : "定位"}
@@ -299,15 +308,15 @@ export function Planner() {
       </div>
 
       <section className="flex flex-col border-t border-border pt-10">
-        <h2 className="font-heading text-2xl leading-tight">收录的路线</h2>
+        <h2 className="font-heading text-xl leading-7 font-semibold tracking-normal">收录的路线</h2>
         <p className="mt-2 max-w-[65ch] text-sm leading-6 text-muted-foreground">
           整理自交通处穿梭校巴和转堂校巴页面（2026 年 10 月）。收费小巴不在这里。校巴是中大学生和教职员专车。
         </p>
         <ul className="mt-5 grid gap-2 sm:grid-cols-2">
           {ROUTES.map((route) => (
-            <li key={route.id} className="flex items-start gap-3 rounded-xl bg-card px-3.5 py-3.5 ring-1 ring-foreground/10">
+            <li key={route.id} className="flex items-start gap-3 rounded-xl border border-border bg-card px-3.5 py-3.5">
               <span
-                className="inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-sm font-semibold"
+                className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-1.5 text-sm font-semibold tabular-nums"
                 style={{ background: route.color, color: inkFor(route.color) }}
               >
                 {route.id}
@@ -317,7 +326,7 @@ export function Planner() {
                   {route.name}
                   <span className="ml-2 text-sm font-normal text-muted-foreground">{routeWhen(route)}</span>
                 </span>
-                <span className="mt-1 block text-sm leading-5 text-muted-foreground">{timetableLabel(route)}</span>
+                <span className="mt-1 block text-sm leading-5 text-muted-foreground tabular-nums">{timetableLabel(route)}</span>
               </span>
             </li>
           ))}
@@ -325,7 +334,7 @@ export function Planner() {
         <p className="mt-5 max-w-[65ch] text-xs leading-5 text-muted-foreground">
           星期一至六（公众假期除外）的晚间按 N 线 19:00–23:30，没有单独开关。星期日和香港公众假期走假日线 H。转堂校巴 5、6A、6B、7 只在星期一至五的时段里建议，星期六不开。步行时间按校园分区估算。出处：
           <a
-            className="underline underline-offset-4 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="text-primary underline underline-offset-4 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             href="https://transport.cuhk.edu.hk/"
             target="_blank"
             rel="noopener noreferrer"
@@ -349,7 +358,7 @@ function SelectionRow({
   onClear: () => void;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-3 rounded-lg bg-muted px-3 py-1">
+    <div className="flex min-h-12 items-center justify-between gap-3 border-t border-border pt-3">
       <p className="text-sm leading-6">
         <span className="text-muted-foreground">{label}</span>
         <span className="mx-2 text-muted-foreground">·</span>
@@ -384,8 +393,9 @@ function PlacePicker({
           return (
             <Button
               key={place.id}
-              variant={selected ? "default" : "outline"}
-              className={tap}
+              variant="outline"
+              className={cn(tap, selected && chipOn)}
+              aria-pressed={selected}
               onClick={() => onPick(place)}
             >
               {place.name}
@@ -436,8 +446,8 @@ function ResultCard({
   }
 
   const fine = <FinePrint picture={picture} />;
-  const answerTitle = "text-xl leading-snug sm:text-2xl";
-  const answerLead = "text-base leading-7 text-foreground/85";
+  const answerTitle = "text-xl leading-snug font-semibold sm:text-2xl";
+  const answerLead = "text-base leading-7 text-muted-foreground";
 
   if (advice.status === "same") {
     return (
@@ -454,10 +464,7 @@ function ResultCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className={cn(answerTitle, "flex items-center gap-2")}>
-            <Footprints className="size-5 shrink-0" />
-            走过去就好
-          </CardTitle>
+          <CardTitle className={answerTitle}>走过去就好</CardTitle>
           <CardDescription className={answerLead}>
             从{start.name}到{end.name}大约 {advice.directMin} 分钟，这段路不必等校巴。
           </CardDescription>
@@ -477,10 +484,7 @@ function ResultCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className={cn(answerTitle, "flex items-center gap-2")}>
-            <Bus className="size-5 shrink-0" />
-            {title}
-          </CardTitle>
+          <CardTitle className={answerTitle}>{title}</CardTitle>
           <CardDescription className={answerLead}>
             {advice.bus.routeName}。{advice.bus.timetable}。全程大约 {advice.bus.total} 分钟，含走到车站和等车。直接走大约{" "}
             {advice.directMin} 分钟。
@@ -501,10 +505,7 @@ function ResultCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className={cn(answerTitle, "flex items-center gap-2")}>
-            <Footprints className="size-5 shrink-0" />
-            步行更快
-          </CardTitle>
+          <CardTitle className={answerTitle}>步行更快</CardTitle>
           <CardDescription className={answerLead}>
             从{start.name}走到{end.name}大约 {advice.directMin} 分钟。
             {advice.bus
@@ -561,41 +562,43 @@ function ResultCard({
 
 function BusDetail({ bus, compact = false }: { bus: BusOption; compact?: boolean }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl bg-muted/70 p-3">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col">
+      <div className="flex items-center gap-3">
         <Badge
-          className="h-7 min-w-7 px-2 text-sm font-semibold"
+          className="size-8 rounded-md px-0 text-sm font-semibold tabular-nums"
           style={{ background: bus.color, color: inkFor(bus.color) }}
         >
           {bus.routeId}
         </Badge>
-        <span className="text-base font-medium">{bus.routeName}</span>
+        <span className="text-base font-semibold">{bus.routeName}</span>
       </div>
-      <ol className="grid gap-2 text-base leading-6">
-        <li>
-          <span className="text-muted-foreground">上车</span> <span className="font-medium">{bus.board.name}</span>
-          <span className="text-muted-foreground"> · 走到车站约 {bus.walkIn} 分钟</span>
+      <ol className="mt-3 divide-y divide-border border-t border-border">
+        <li className="flex flex-col gap-0.5 py-2.5">
+          <span className="text-sm text-muted-foreground">上车</span>
+          <span className="text-base font-medium">{bus.board.name}</span>
+          <span className="text-sm text-muted-foreground tabular-nums">走到车站约 {bus.walkIn} 分钟</span>
         </li>
-        <li>
-          <span className="text-muted-foreground">下车</span> <span className="font-medium">{bus.alight.name}</span>
-          <span className="text-muted-foreground"> · 下车后再走约 {bus.walkOut} 分钟</span>
+        <li className="flex flex-col gap-0.5 py-2.5">
+          <span className="text-sm text-muted-foreground">下车</span>
+          <span className="text-base font-medium">{bus.alight.name}</span>
+          <span className="text-sm text-muted-foreground tabular-nums">下车后再走约 {bus.walkOut} 分钟</span>
         </li>
       </ol>
       <CloseStopNotes board={bus.board} alight={bus.alight} />
       {!compact ? (
-        <p className="text-sm leading-6">
+        <p className="mt-3 text-sm leading-6 tabular-nums">
           车程约 {bus.ride} 分钟，中途大约 {Math.max(0, bus.hops - 1)} 站。
           {bus.departLabel ? ` 下一班 ${bus.departLabel}，${formatWait(bus.wait ?? 0)}。` : " 今天没有更晚的班次。"}
         </p>
       ) : null}
-      <p className="text-xs leading-5 text-muted-foreground">{bus.timetable}</p>
-      {bus.special ? <p className="text-xs leading-5 text-muted-foreground">转堂校巴只在上面这个时段内开。</p> : null}
+      <p className="mt-2 text-xs leading-5 text-muted-foreground tabular-nums">{bus.timetable}</p>
+      {bus.special ? <p className="mt-1 text-xs leading-5 text-muted-foreground">转堂校巴只在上面这个时段内开。</p> : null}
       {bus.remarks.map((remark) => (
-        <p key={remark} className="text-xs leading-5 text-muted-foreground">
+        <p key={remark} className="mt-1 text-xs leading-5 text-muted-foreground">
           {remark}
         </p>
       ))}
-      {bus.routeNote ? <p className="text-xs leading-5 text-muted-foreground">{bus.routeNote}</p> : null}
+      {bus.routeNote ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{bus.routeNote}</p> : null}
     </div>
   );
 }
@@ -614,7 +617,7 @@ function CloseStopNotes({ board, alight }: { board: Point; alight: Point }) {
   if (nearBoard.length === 0 && nearAlight.length === 0 && !pairClose) return null;
 
   return (
-    <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-950">
+    <div className="mt-3 rounded-lg border border-[#f3d48a] bg-[#fef7e0] px-3 py-2 text-sm leading-6 text-[#7a4f01]">
       {nearBoard.map((item) => (
         <p key={`board-${item.stop.id}`}>
           上车站「{board.name}」附近{formatDistance(item.meters)}还有「{item.stop.name}」。请核对站名再上车。
@@ -637,7 +640,7 @@ function CloseStopNotes({ board, alight }: { board: Point; alight: Point }) {
 function WalkChoices({ title, origin, destination }: { title: string; origin: WalkEnd; destination: WalkEnd }) {
   const apps = walkApps(origin, destination);
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-muted/50 p-3" role="group" aria-label={title}>
+    <div className="flex flex-col gap-2 border-t border-border pt-3" role="group" aria-label={title}>
       <p className="text-base font-medium">{title}</p>
       <p className="text-sm leading-6 text-muted-foreground">先选一个地图，再打开步行路线。</p>
       <div className="flex flex-wrap gap-2">
@@ -668,7 +671,7 @@ function StatusNote({ tone, children }: { tone: "error" | "hint"; children: stri
   return (
     <p
       role="alert"
-      className="rounded-lg bg-destructive/10 px-3 py-2 text-sm leading-6 text-[color-mix(in_oklch,var(--destructive),var(--foreground)_42%)]"
+      className="rounded-lg bg-[#fce8e6] px-3 py-2 text-sm leading-6 text-[#a50e0e]"
     >
       {children}
     </p>

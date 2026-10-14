@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-noto), "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", var(--font-noto), "Microsoft YaHei", sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-noto-serif), "Songti SC", "Noto Serif SC", serif;
+  --font-heading: system-ui, -apple-system, "Segoe UI", "PingFang SC", var(--font-noto), "Microsoft YaHei", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,30 +49,30 @@
 }
 
 :root {
-  --background: oklch(0.972 0.012 85);
-  --foreground: oklch(0.28 0.03 40);
-  --card: oklch(0.995 0.004 90);
-  --card-foreground: oklch(0.28 0.03 40);
-  --popover: oklch(0.995 0.004 90);
-  --popover-foreground: oklch(0.28 0.03 40);
-  --primary: oklch(0.42 0.12 340);
-  --primary-foreground: oklch(0.985 0.01 95);
-  --secondary: oklch(0.94 0.02 80);
-  --secondary-foreground: oklch(0.32 0.04 40);
-  --muted: oklch(0.94 0.015 85);
-  --muted-foreground: oklch(0.48 0.03 40);
-  --accent: oklch(0.93 0.03 80);
-  --accent-foreground: oklch(0.32 0.05 40);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.02 75);
-  --input: oklch(0.88 0.02 75);
-  --ring: oklch(0.52 0.1 340);
+  --background: #f5f5f7;
+  --foreground: #1c1c1e;
+  --card: #ffffff;
+  --card-foreground: #1c1c1e;
+  --popover: #ffffff;
+  --popover-foreground: #1c1c1e;
+  --primary: #0b57d0;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f3f4;
+  --secondary-foreground: #1c1c1e;
+  --muted: #f1f3f4;
+  --muted-foreground: #5f6368;
+  --accent: #e8f0fe;
+  --accent-foreground: #0b57d0;
+  --destructive: #b3261e;
+  --border: #dadce0;
+  --input: #dadce0;
+  --ring: #0b57d0;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -84,24 +84,24 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #202124;
+  --foreground: #e8eaed;
+  --card: #292a2d;
+  --card-foreground: #e8eaed;
+  --popover: #292a2d;
+  --popover-foreground: #e8eaed;
+  --primary: #8ab4f8;
+  --primary-foreground: #202124;
+  --secondary: #3c4043;
+  --secondary-foreground: #e8eaed;
+  --muted: #3c4043;
+  --muted-foreground: #9aa0a6;
+  --accent: #394457;
+  --accent-foreground: #8ab4f8;
+  --destructive: #f2b8b5;
+  --border: #3c4043;
+  --input: #3c4043;
+  --ring: #8ab4f8;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -123,18 +123,15 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(900px 420px at 0% -10%, oklch(0.9 0.045 340 / 0.28), transparent 55%),
-      radial-gradient(700px 360px at 100% 0%, oklch(0.93 0.04 85 / 0.9), transparent 50%);
-    background-attachment: fixed;
+    background-image: none;
   }
   html {
     @apply font-sans;
-    scrollbar-color: oklch(0.72 0.025 70) transparent;
+    scrollbar-color: #c4c7cc transparent;
   }
   ::selection {
-    background: color-mix(in oklch, var(--primary) 24%, var(--background));
-    color: var(--foreground);
+    background: #d3e3fd;
+    color: #1c1c1e;
   }
   input,
   textarea {

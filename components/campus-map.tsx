@@ -179,7 +179,7 @@ export function CampusMap({ start, end, boardId, alightId, onPick }: CampusMapPr
   }, []);
 
   return (
-    <div className="relative h-full overflow-hidden rounded-2xl ring-1 ring-foreground/10">
+    <div className="relative h-full overflow-hidden rounded-xl border border-border bg-card">
       <div ref={nodeRef} className="h-full w-full" />
     </div>
   );
