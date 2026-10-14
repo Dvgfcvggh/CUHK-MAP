@@ -709,7 +709,7 @@ function WalkChoices({ title, origin, destination }: { title: string; origin: Wa
     <div className="flex flex-col gap-2 border-t border-border pt-3" role="group" aria-label={title}>
       <p className="text-base font-medium">{title}</p>
       <p className="text-sm leading-6 text-muted-foreground">
-        如果某个地图打不开路线，可以尝试切换导航。
+        目前有bug。如果某个地图打不开路线，可以尝试切换导航。
       </p>
       <div className="flex flex-wrap gap-2">
         {apps.map((app) => (
