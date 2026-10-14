@@ -40,6 +40,22 @@ if (uphill.status === "bus") {
 const hop = advise(placeById("science"), placeById("srr"), wedSoon);
 expect(hop.status === "walk" && hop.because === "short", `science to Shaw Hall should be a short walk, got ${hop.status}`);
 
+const toSrr = advise(placeById("univ-station"), placeById("srr"), wedSoon);
+expect(toSrr.status === "bus", `station to Shaw Hall should take the bus, got ${toSrr.status}`);
+if (toSrr.status === "bus") {
+  expect(toSrr.bus.total !== null && toSrr.bus.total - toSrr.directMin < 15, `saved ${toSrr.bus.total}-${toSrr.directMin}`);
+  expect(toSrr.directMin > 0, "bus result still carries the direct walk time");
+}
+
+const walkMuchFaster = advise(placeById("yiap"), placeById("univ-station"), hkDate(2026, 10, 14, 10, 0));
+expect(
+  walkMuchFaster.status === "walk" && walkMuchFaster.because === "faster",
+  `康本园 to 大学站 should stay 步行更快, got ${walkMuchFaster.status}`,
+);
+if (walkMuchFaster.status === "walk" && walkMuchFaster.bus?.total != null) {
+  expect(walkMuchFaster.bus.total - walkMuchFaster.directMin >= 15, `save ${walkMuchFaster.bus.total - walkMuchFaster.directMin}`);
+}
+
 const same = advise(placeById("na"), placeById("na"), wedSoon);
 expect(same.status === "same", "same place");
 
@@ -152,14 +168,62 @@ const apple = apps.find((app) => app.id === "apple");
 const amap = apps.find((app) => app.id === "amap");
 const tencent = apps.find((app) => app.id === "tencent");
 const baidu = apps.find((app) => app.id === "baidu");
-expect(Boolean(google?.href.includes("travelmode=walking")), google?.href ?? "");
+expect(Boolean(google?.href.includes("dirflg=w")), google?.href ?? "");
 expect(Boolean(apple?.href.includes("dirflg=w")), apple?.href ?? "");
 expect(Boolean(amap?.href.includes("mode=walk")), amap?.href ?? "");
 expect(Boolean(tencent?.href.includes("type=walk")), tencent?.href ?? "");
 expect(Boolean(baidu?.href.includes("mode=walking") && baidu.href.includes("coord_type=wgs84")), baidu?.href ?? "");
 expect(!apps.some((app) => app.href.includes("BAIDU_MAP") || app.href.includes("ak=")), "walk links must not need a key");
 
+function expectBothEnds(
+  href: string,
+  origin: { lat: number; lng: number; name: string },
+  destination: { lat: number; lng: number; name: string },
+  label: string,
+) {
+  const originPairs = [`${origin.lat.toFixed(6)},${origin.lng.toFixed(6)}`, `${origin.lng.toFixed(6)},${origin.lat.toFixed(6)}`];
+  const destPairs = [
+    `${destination.lat.toFixed(6)},${destination.lng.toFixed(6)}`,
+    `${destination.lng.toFixed(6)},${destination.lat.toFixed(6)}`,
+  ];
+  expect(originPairs.some((pair) => href.includes(pair)), `${label} missing origin coordinates in ${href}`);
+  expect(destPairs.some((pair) => href.includes(pair)), `${label} missing destination coordinates in ${href}`);
+  expect(href.includes(encodeURIComponent(origin.name)), `${label} missing origin name in ${href}`);
+  expect(href.includes(encodeURIComponent(destination.name)), `${label} missing destination name in ${href}`);
+}
+
+for (const app of apps) {
+  expectBothEnds(app.href, placeById("univ-station"), placeById("srr"), app.label);
+}
+
+const legTrip = advise(placeById("univ-station"), placeById("library"), wedSoon);
+expect(legTrip.status === "bus", `station to library should be a bus so both walk legs differ, got ${legTrip.status}`);
+if (legTrip.status === "bus") {
+  const start = placeById("univ-station");
+  const end = placeById("library");
+  expect(legTrip.bus.board.id !== start.id, "boarding stop should not be the start");
+  expect(legTrip.bus.alight.id !== end.id, "alighting stop should not be the end");
+  for (const app of walkApps(start, legTrip.bus.board)) {
+    expectBothEnds(app.href, start, legTrip.bus.board, `步行到上车站 ${app.label}`);
+  }
+  for (const app of walkApps(legTrip.bus.alight, end)) {
+    expectBothEnds(app.href, legTrip.bus.alight, end, `从下车站步行到终点 ${app.label}`);
+  }
+}
+
 console.log("recommend checks passed");
+if (toSrr.status === "bus") {
+  console.log("bus", "大学站 → 邵逸夫堂", toSrr.bus.routeId, `total ${toSrr.bus.total} walk ${toSrr.directMin}`);
+}
+if (walkMuchFaster.status === "walk") {
+  console.log(
+    "walk faster",
+    "康本园 → 大学站",
+    walkMuchFaster.directMin,
+    "vs",
+    walkMuchFaster.bus?.total,
+  );
+}
 console.log("evening", routeOf(evening), evening.status === "bus" ? evening.bus.timetable : "");
 console.log("saturday", routeOf(saturday));
 console.log("special", routeOf(meet), meet.status === "bus" ? meet.bus.timetable : "");

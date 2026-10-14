@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { LayerGroup, Map as LeafletMap } from "leaflet";
-import { CAMPUS_CENTER, STOPS, pointFromMap, type Point } from "@/lib/places";
+import { STOPS, pointFromMap, type Point } from "@/lib/places";
 
 type CampusMapProps = {
   start: Point | null;
@@ -20,6 +20,12 @@ type MapView = {
   boardId?: string;
   alightId?: string;
 };
+
+/** Campus box. The map cannot be panned outside it. */
+const CAMPUS_BOUNDS: [[number, number], [number, number]] = [
+  [22.408, 114.195],
+  [22.433, 114.218],
+];
 
 function shifted(lat: number, lng: number, index: number): [number, number] {
   if (index === 0) return [lat, lng];
@@ -124,19 +130,37 @@ export function CampusMap({ start, end, boardId, alightId, onPick }: CampusMapPr
       const L = (imported.default ?? imported) as LeafletNs;
       if (disposed) return;
       leafletRef.current = L;
-      map = L.map(node, { zoomControl: true }).setView([CAMPUS_CENTER.lat, CAMPUS_CENTER.lng], 16);
+      const campus = L.latLngBounds(CAMPUS_BOUNDS);
+      map = L.map(node, {
+        zoomControl: true,
+        maxBounds: campus,
+        maxBoundsViscosity: 1,
+      });
+      const fitCampus = () => {
+        if (!map) return;
+        map.setMinZoom(0);
+        map.fitBounds(campus);
+        map.setMinZoom(map.getZoom());
+      };
+      fitCampus();
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       }).addTo(map);
       map.on("click", (event) => {
+        if (!campus.contains(event.latlng)) return;
         onPickRef.current(pointFromMap(event.latlng.lat, event.latlng.lng));
       });
       const layer = L.layerGroup().addTo(map);
       layerRef.current = layer;
       mapRef.current = map;
       drawOverlays(map, layer, L, viewRef.current, fitKeyRef, (point) => onPickRef.current(point));
-      requestAnimationFrame(() => map?.invalidateSize());
+      requestAnimationFrame(() => {
+        if (!map) return;
+        map.invalidateSize();
+        const view = viewRef.current;
+        if (!view.start || !view.end) fitCampus();
+      });
     })();
 
     return () => {

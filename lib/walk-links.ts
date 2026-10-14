@@ -1,7 +1,10 @@
 /**
  * Walking handoff. No API keys.
- * Coordinates stay WGS84. Baidu is told that with coord_type=wgs84.
- * Amap and Tencent URLs follow the templates as given; names are encoded.
+ * Every link carries both ends: WGS84 coordinates and a name.
+ * Google uses saddr/daddr lat,lng+(name): the directions API rejects a name
+ * glued onto origin=, and that form still opens both ends on foot.
+ * Baidu is told the coordinates are WGS84 with coord_type=wgs84.
+ * Amap and Tencent keep their given parameter order; names are encoded.
  */
 
 export type WalkEnd = { lat: number; lng: number; name: string };
@@ -30,12 +33,12 @@ export function walkApps(origin: WalkEnd, destination: WalkEnd): WalkApp[] {
     {
       id: "google",
       label: "Google 地图",
-      href: `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLng}&destination=${dLat},${dLng}&travelmode=walking`,
+      href: `https://www.google.com/maps?saddr=${oLat},${oLng}+(${oName})&daddr=${dLat},${dLng}+(${dName})&dirflg=w`,
     },
     {
       id: "apple",
       label: "苹果地图",
-      href: `https://maps.apple.com/?saddr=${oLat},${oLng}&daddr=${dLat},${dLng}&dirflg=w`,
+      href: `https://maps.apple.com/?saddr=${oName}@${oLat},${oLng}&daddr=${dName}@${dLat},${dLng}&dirflg=w`,
     },
     {
       id: "amap",

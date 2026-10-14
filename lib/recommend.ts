@@ -4,7 +4,8 @@ import { inServiceWindow, routesOnClock, timetableLabel, type RouteStop, type Sh
 
 const SHORT_WALK = 6;
 const MAX_WAIT = 40;
-const BUS_MARGIN = 3;
+/** Walking is the headline only when it beats the full bus trip by this many minutes. */
+const WALK_SAVES_MINUTES = 15;
 
 export type BusOption = {
   routeId: string;
@@ -168,11 +169,11 @@ export function advise(origin: Point, dest: Point, now: Date): TripAdvice {
     }
   }
 
-  if (bestRunning && bestRunning.total !== null && bestRunning.total + BUS_MARGIN < direct) {
-    return { status: "bus", directMin: direct, bus: bestRunning };
+  if (bestRunning && bestRunning.total !== null && bestRunning.total - direct >= WALK_SAVES_MINUTES) {
+    return { status: "walk", directMin: direct, because: "faster", bus: bestRunning };
   }
   if (bestRunning) {
-    return { status: "walk", directMin: direct, because: "faster", bus: bestRunning };
+    return { status: "bus", directMin: direct, bus: bestRunning };
   }
   if (bestAny) {
     return { status: "closed", directMin: direct, bus: bestAny };
