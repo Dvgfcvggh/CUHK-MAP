@@ -145,7 +145,7 @@ export function Planner() {
           ))}
         </ul>
         <p className="text-xs leading-5 text-muted-foreground">
-          星期一至五的晚间按 N 线 19:00–23:30，没有单独开关。星期六、星期日和香港公众假期走假日线 H。转堂校巴 5、6A、6B、7 只在教学日的开行时段里建议。步行时间按校园分区估算。出处：
+          星期一至六（公众假期除外）的晚间按 N 线 19:00–23:30，没有单独开关。星期日和香港公众假期走假日线 H。转堂校巴 5、6A、6B、7 只在星期一至五的时段里建议，星期六不开。步行时间按校园分区估算。出处：
           <a className="underline" href="https://transport.cuhk.edu.hk/" target="_blank" rel="noopener noreferrer">
             香港中文大学交通处
           </a>

@@ -71,9 +71,26 @@ if (holiday.status === "bus") {
   expect(holiday.bus.timetable.includes("08:20–23:20"), holiday.bus.timetable);
 }
 
+expect(holidayInfo(sat).holiday === false, "an ordinary Saturday is not a holiday");
 const saturday = advise(placeById("univ-station"), placeById("area39-up"), sat);
-expect(saturday.status === "bus" && saturday.bus.routeId === "H", `Saturday should use H, got ${routeOf(saturday)}`);
-expect(servicePicture(sat).summary.includes("假日线 H"), servicePicture(sat).summary);
+expect(saturday.status === "bus" && saturday.bus.routeId !== "H", `Saturday 10:50 must not use H, got ${routeOf(saturday)}`);
+if (saturday.status === "bus") {
+  expect(saturday.bus.routeId === "4" || saturday.bus.routeId === "8", saturday.bus.routeId);
+}
+expect(servicePicture(sat).short.includes("星期一至六"), servicePicture(sat).short);
+expect(!servicePicture(sat).summary.includes("按假日线"), servicePicture(sat).summary);
+
+const satEvening = advise(placeById("univ-station"), placeById("area39-up"), hkDate(2026, 10, 17, 20, 10));
+expect(satEvening.status === "bus" && satEvening.bus.routeId === "N", `Saturday 20:10 should use N, got ${routeOf(satEvening)}`);
+expect(servicePicture(hkDate(2026, 10, 17, 20, 10)).period === "evening", "Saturday evening is the N window");
+
+const satHoliday = hkDate(2026, 4, 4, 10, 50);
+expect(holidayInfo(satHoliday).kind === "public", "4 Apr 2026 is a Saturday public holiday");
+const satHolidayTrip = advise(placeById("univ-station"), placeById("area39-up"), satHoliday);
+expect(
+  satHolidayTrip.status === "bus" && satHolidayTrip.bus.routeId === "H",
+  `a Saturday public holiday should use H, got ${routeOf(satHolidayTrip)}`,
+);
 
 const publicHoliday = advise(placeById("univ-station"), placeById("area39-up"), nationalDay);
 expect(
@@ -108,8 +125,8 @@ if (closeRide.status === "bus") {
 const tooEarly = advise(placeById("chung-chi"), placeById("cwc-down"), wedBeforeMeet);
 expect(routeOf(tooEarly) !== "5", `09:00 is outside route 5, got ${routeOf(tooEarly)}`);
 
-const satMeet = advise(placeById("chung-chi"), placeById("cwc-down"), sat);
-expect(routeOf(satMeet) !== "5", `Saturday must not recommend route 5, got ${routeOf(satMeet)}`);
+const satMeet = advise(placeById("shaw-up"), placeById("cwc-down"), hkDate(2026, 10, 17, 10, 22));
+expect(routeOf(satMeet) !== "5" && routeOf(satMeet) !== "6A" && routeOf(satMeet) !== "6B" && routeOf(satMeet) !== "7", `Saturday must not recommend a meet-class bus, got ${routeOf(satMeet)}`);
 
 const nearScience = nearbyStops(placeById("srr"), 120);
 const science = nearScience.find((item) => item.stop.id === "science");

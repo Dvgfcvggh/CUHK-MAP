@@ -103,7 +103,7 @@ export function holidayInfo(date: Date): HolidayInfo {
   const weekday = WEEKDAY_ZH[clock.weekday] ?? clock.weekday;
   if (name) return { holiday: true, kind: "public", name, weekday };
   if (clock.weekday === "Sun") return { holiday: true, kind: "sunday", weekday };
-  if (clock.weekday === "Sat") return { holiday: true, kind: "saturday", weekday };
+  if (clock.weekday === "Sat") return { holiday: false, kind: "saturday", weekday };
   return { holiday: false, kind: "teaching", weekday };
 }
 

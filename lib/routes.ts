@@ -7,15 +7,14 @@
  * go up the left column, across the top, then down the right column.
  *
  * Day choice is the Hong Kong clock, not a switch:
- * - Monday–Friday, and not a public holiday: daytime routes in their own
- *   windows, then evening route N from 19:00–23:30.
- * - Saturday, Sunday, and Hong Kong public holidays: holiday line H,
- *   the non-teaching pattern already used for Sunday and public holidays.
- *   Route 8's teaching-day terminus (大学站) is not used on those days.
+ * - Monday–Saturday, except public holidays: daytime routes in their own
+ *   windows, then evening route N from 19:00–23:30. Saturday uses this
+ *   same set, including N.
+ * - Sunday and Hong Kong public holidays: holiday line H only.
  *
- * Meet-class routes 5 / 6A / 6B / 7 run only inside their teaching-day
- * windows. The paid minibus (上行 / 下行) stays out: it charges a fare
- * and is the visitor service, not this shuttle.
+ * Meet-class routes 5 / 6A / 6B / 7 run only on Monday–Friday, and only
+ * inside their windows. They stay off on Saturday. The paid minibus
+ * (上行 / 下行) stays out: it charges a fare and is the visitor service.
  */
 
 import { clockLabel, hkClock, holidayInfo, parseClock, type HolidayInfo } from "@/lib/hk-time";
@@ -31,7 +30,7 @@ export type ShuttleRoute = {
   id: string;
   name: string;
   color: string;
-  /** teaching = Mon–Fri except public holidays. holiday = Sat, Sun, and public holidays. */
+  /** teaching = Mon–Sat except public holidays. holiday = Sunday and public holidays. */
   days: "teaching" | "holiday";
   /** Hidden unless the Hong Kong clock is inside first–last. */
   special?: boolean;
@@ -64,9 +63,9 @@ const area39OnHour: RouteStop = {
   remark: "39区（上行）只有每小时整点的班次停靠。",
 };
 
-const teachingDay = "星期一至五上课日";
+const teachingDay = "星期一至六（公众假期除外）";
 const teachingMeet = "星期一至五教学日";
-const holidayDays = "星期六、星期日及香港公众假期";
+const holidayDays = "星期日及香港公众假期";
 
 function windowLabel(days: string, first: string, last: string, minutes: number[]): string {
   const list = minutes.map((minute) => String(minute).padStart(2, "0")).join("、");
@@ -203,7 +202,7 @@ export const ROUTES: ShuttleRoute[] = [
     last: "18:35",
     minutes: [15, 35, 55],
     windowLabel: windowLabel(teachingDay, "07:35", "18:35", [15, 35, 55]),
-    note: "上课日终点是大学站。星期六、星期日和公众假期不走 8 号线，改走假日线 H。",
+    note: "星期一至六（公众假期除外），终点是大学站。星期日和公众假期改走假日线 H。",
     stops: [
       { stopId: "yiap" },
       { stopId: "cc-east-up" },
@@ -235,8 +234,8 @@ export const ROUTES: ShuttleRoute[] = [
     first: "19:00",
     last: "23:30",
     minutes: [0, 15, 30, 45],
-    windowLabel: windowLabel("星期一至五上课日晚间", "19:00", "23:30", [0, 15, 30, 45]),
-    note: "到了这个时段才建议晚间线，没有单独开关。整点班次加停研究生宿舍一座。",
+    windowLabel: windowLabel("星期一至六晚间（公众假期除外）", "19:00", "23:30", [0, 15, 30, 45]),
+    note: "星期六同样走晚间线。到了这个时段才建议，没有单独开关。整点班次加停研究生宿舍一座。",
     stops: [
       { stopId: "univ-station" },
       pghOnHour,
@@ -270,7 +269,7 @@ export const ROUTES: ShuttleRoute[] = [
     last: "23:20",
     minutes: [0, 20, 40],
     windowLabel: windowLabel(holidayDays, "08:20", "23:20", [0, 20, 40]),
-    note: "星期六、星期日及公众假期全天用这一条，包含傍晚，不另开晚间线。整点班次加停研究生宿舍一座和 39区（上行）。",
+    note: "只开星期日和公众假期，星期六不走这条线。全天用这一条，包含傍晚，不另开晚间线。整点班次加停研究生宿舍一座和 39区（上行）。",
     stops: [
       { stopId: "univ-station" },
       pghOnHour,
@@ -393,15 +392,16 @@ export function timetableLabel(route: ShuttleRoute): string {
 }
 
 export function routeWhen(route: ShuttleRoute): string {
-  if (route.days === "holiday") return "星期六、星期日及公众假期";
+  if (route.days === "holiday") return "星期日及公众假期";
   if (route.special) return "星期一至五教学日，限时";
-  if (route.evening) return "星期一至五上课日晚间";
-  return "星期一至五上课日";
+  if (route.evening) return "星期一至六晚间（公众假期除外）";
+  return "星期一至六（公众假期除外）";
 }
 
 export function routesOnClock(now: Date): ShuttleRoute[] {
-  const kind = holidayInfo(now).holiday ? "holiday" : "teaching";
-  return ROUTES.filter((route) => route.days === kind);
+  const info = holidayInfo(now);
+  if (info.holiday) return ROUTES.filter((route) => route.days === "holiday");
+  return ROUTES.filter((route) => route.days === "teaching" && !(info.kind === "saturday" && route.special));
 }
 
 export function inServiceWindow(now: Date, route: ShuttleRoute): boolean {
@@ -427,10 +427,9 @@ export function servicePicture(now: Date): ServicePicture {
   const clock = hkClock(now);
   const nowMin = (clock.hour % 24) * 60 + clock.minute;
   const timeLabel = clockLabel(clock.hour % 24, clock.minute);
-  const kind = info.holiday ? "holiday" : "teaching";
-  const open = ROUTES.filter((route) => route.days === kind && !route.special).filter((route) => {
-    return nowMin >= parseClock(route.first) && nowMin <= parseClock(route.last);
-  });
+  const open = routesOnClock(now)
+    .filter((route) => !route.special)
+    .filter((route) => nowMin >= parseClock(route.first) && nowMin <= parseClock(route.last));
   const period = open.some((route) => route.evening) ? "evening" : open.length > 0 ? "day" : "closed";
   const when = `香港时间 ${timeLabel}，${info.weekday}`;
 
@@ -439,9 +438,15 @@ export function servicePicture(now: Date): ServicePicture {
   if (info.kind === "public") {
     summary = `${when}，公众假期（${info.name}）。全天按假日线 H，08:20–23:20，不分开晚间线。`;
     short = "当前是公众假期，按假日线 H。";
+  } else if (info.kind === "saturday" && period === "evening") {
+    summary = `${when}。星期六晚间按晚间线 N，19:00–23:30。转堂校巴星期六不开。`;
+    short = "当前是星期六晚间，按晚间线 N。";
+  } else if (info.kind === "saturday" && period === "day") {
+    summary = `${when}。星期六按星期一至六的路线，不是假日线。白天走 1、2、2S、3、4、8；19:00 起改晚间线 N。转堂校巴星期六不开。`;
+    short = "当前是星期六，按星期一至六的路线。";
   } else if (info.kind === "saturday") {
-    summary = `${when}。星期六按假日线 H，08:20–23:20，不分开晚间线。`;
-    short = "当前是星期六，按假日线 H。";
+    summary = `${when}。星期六现在不在日间班次或晚间线 N（19:00–23:30）里面。`;
+    short = "当前是星期六，不在开行时段里。";
   } else if (info.kind === "sunday") {
     summary = `${when}。星期日按假日线 H，08:20–23:20，不分开晚间线。`;
     short = "当前是星期日，按假日线 H。";
