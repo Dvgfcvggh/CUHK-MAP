@@ -356,6 +356,7 @@ function ResultCard({
         <CardContent className="flex flex-col gap-3">
           <BusDetail bus={advice.bus} />
           <WalkChoices title="步行到上车站" origin={start} destination={advice.bus.board} />
+          {/* This leg starts at the alighting stop, not the campus center or the user's start. */}
           <WalkChoices title="从下车站步行到终点" origin={advice.bus.alight} destination={end} />
           {fine}
         </CardContent>

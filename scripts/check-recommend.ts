@@ -1,5 +1,5 @@
 import { holidayInfo } from "../lib/hk-time";
-import { currentPositionPoint, distanceMeters, nearbyStops, placeById, pointFromMap } from "../lib/places";
+import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, placeById, pointFromMap } from "../lib/places";
 import { advise, hkDate } from "../lib/recommend";
 import { servicePicture } from "../lib/routes";
 import { walkApps } from "../lib/walk-links";
@@ -175,7 +175,7 @@ const apple = apps.find((app) => app.id === "apple");
 const amap = apps.find((app) => app.id === "amap");
 const tencent = apps.find((app) => app.id === "tencent");
 const baidu = apps.find((app) => app.id === "baidu");
-expect(Boolean(google?.href.includes("travelmode=walking")), google?.href ?? "");
+expect(Boolean(google?.href.includes("3e2") && google.href.includes("0x0:0x0")), google?.href ?? "");
 expect(Boolean(apple?.href.includes("dirflg=w")), apple?.href ?? "");
 expect(Boolean(amap?.href.includes("mode=walk")), amap?.href ?? "");
 expect(Boolean(tencent?.href.includes("type=walk")), tencent?.href ?? "");
@@ -197,7 +197,9 @@ function expectBothEnds(
   expect(originPairs.some((pair) => href.includes(pair)), `${label} missing origin coordinates in ${href}`);
   expect(destPairs.some((pair) => href.includes(pair)), `${label} missing destination coordinates in ${href}`);
   if (id === "google") {
-    expect(href.startsWith("https://www.google.com/maps/dir/?api=1&origin="), href);
+    expect(href.includes(`!2m2!1d${origin.lng.toFixed(6)}!2d${origin.lat.toFixed(6)}`), `${label} origin pin ${href}`);
+    expect(href.includes(`!2m2!1d${destination.lng.toFixed(6)}!2d${destination.lat.toFixed(6)}`), `${label} destination pin ${href}`);
+    expect(!href.includes("api=1"), `${label} must not use the snapping directions API ${href}`);
     expect(!href.includes(encodeURIComponent(origin.name)), `${label} must not send the origin name ${href}`);
     expect(!href.includes(encodeURIComponent(destination.name)), `${label} must not send the destination name ${href}`);
     return;
@@ -213,8 +215,7 @@ for (const app of apps) {
 const chungChi = placeById("chung-chi");
 const sciencePlace = placeById("science");
 const googleToScience = walkApps(chungChi, sciencePlace).find((app) => app.id === "google");
-const googleScienceUrl = `https://www.google.com/maps/dir/?api=1&origin=${chungChi.lat.toFixed(6)},${chungChi.lng.toFixed(6)}&destination=${sciencePlace.lat.toFixed(6)},${sciencePlace.lng.toFixed(6)}&travelmode=walking`;
-expect(googleToScience?.href === googleScienceUrl, googleToScience?.href ?? "");
+expect(Boolean(googleToScience?.href.includes("0x0:0x0") && googleToScience.href.endsWith("3e2")), googleToScience?.href ?? "");
 
 const legTrip = advise(placeById("univ-station"), placeById("library"), wedSoon);
 expect(legTrip.status === "bus", `station to library should be a bus so both walk legs differ, got ${legTrip.status}`);
@@ -229,10 +230,15 @@ if (legTrip.status === "bus") {
   for (const app of walkApps(legTrip.bus.alight, end)) {
     expectBothEnds(app.href, legTrip.bus.alight, end, `从下车站步行到终点 ${app.label}`, app.id);
   }
+  const alightGoogle = walkApps(legTrip.bus.alight, end).find((app) => app.id === "google");
+  const campusPin = `${CAMPUS_CENTER.lat.toFixed(6)},${CAMPUS_CENTER.lng.toFixed(6)}`;
+  expect(alightGoogle?.href.includes(`${legTrip.bus.alight.lat.toFixed(6)},${legTrip.bus.alight.lng.toFixed(6)}`), alightGoogle?.href ?? "");
+  expect(!alightGoogle?.href.includes(campusPin), `alight leg must not start at the campus center ${alightGoogle?.href}`);
+  expect(!alightGoogle?.href.includes(`${start.lat.toFixed(6)},${start.lng.toFixed(6)}`), "alight leg must not start at the chosen start");
+  console.log("google 下车站 → 终点", legTrip.bus.alight.name, "→", end.name, alightGoogle?.href);
 }
 
 console.log("recommend checks passed");
-console.log("google 崇基教学楼 → 科学馆", googleScienceUrl);
 if (toSrr.status === "bus") {
   console.log("bus", "大学站 → 邵逸夫堂", toSrr.bus.routeId, `total ${toSrr.bus.total} walk ${toSrr.directMin}`);
 }

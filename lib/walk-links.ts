@@ -1,8 +1,10 @@
 /**
  * Walking handoff. No API keys.
  * Both ends are WGS84. Coordinates decide the route; a name is only a label.
- * Google ignores a parenthetical name and searches that text, so campus names
- * such as 科学馆 fail. Its URL is coordinates only.
+ * Google's directions API snaps a campus coordinate to a nearby place, often
+ * "The Chinese University of Hong Kong", so the alighting stop is lost.
+ * A path of loc:lat,lng is searched as the word "loc". Instead each end is a
+ * dropped pin: place id 0x0:0x0 plus longitude then latitude, and 3e2 is walking.
  * Apple keeps name@lat,lng, where the coordinate after @ is the place.
  * Amap puts lng,lat before the name. Tencent routes on fromcoord/tocoord.
  * Baidu prefers latlng over name. Those four still carry both.
@@ -35,7 +37,7 @@ export function walkApps(origin: WalkEnd, destination: WalkEnd): WalkApp[] {
     {
       id: "google",
       label: "Google 地图",
-      href: `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLng}&destination=${dLat},${dLng}&travelmode=walking`,
+      href: `https://www.google.com/maps/dir/${oLat},${oLng}/${dLat},${dLng}/data=!3m1!4b1!4m14!4m13!1m5!1m1!1s0x0:0x0!2m2!1d${oLng}!2d${oLat}!1m5!1m1!1s0x0:0x0!2m2!1d${dLng}!2d${dLat}!3e2`,
     },
     {
       id: "apple",
