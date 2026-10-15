@@ -1,6 +1,6 @@
 import { holidayInfo } from "../lib/hk-time";
 import { nominatimSearchUrl } from "../lib/geocode";
-import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, placeById, pointFromMap, searchPlaces, typedPin } from "../lib/places";
+import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, placeById, pointFromMap, searchPlaces, typedPin, walkMinutes } from "../lib/places";
 import { advise, hkDate, isShortTrip, walkingBeatsBus } from "../lib/recommend";
 import { servicePicture } from "../lib/routes";
 import { walkApps, walkEndsApart } from "../lib/walk-links";
@@ -76,6 +76,23 @@ if (fasterFar.status === "bus") {
   expect(walkApps(chungChi, fasterFar.bus.board).length === 0, "same-point board leg must not build map links");
   expect(walkEndsApart(fasterFar.bus.alight, library), "the alighting stop and the library are different points");
   expect(walkApps(fasterFar.bus.alight, library).length === 5, "alight leg keeps every map app");
+}
+
+const eastStop = placeById("cc-east-up");
+const shawStop = placeById("shaw-up");
+const eastApart = distanceMeters(eastStop.lat, eastStop.lng, shawStop.lat, shawStop.lng);
+const eastWalk = walkMinutes(eastStop, shawStop);
+expect(eastApart > 800, `east pair is ${eastApart} m`);
+expect(eastWalk > 5 && eastWalk >= Math.ceil(eastApart / 50), `long same-zone walk stayed flat at ${eastWalk}`);
+const liang = pointFromMap(22.422902, 114.2019341);
+expect(liang.zone === "east" && liang.kind === "pin", `${liang.zone} ${liang.kind}`);
+expect(walkMinutes(eastStop, liang) > 5, `pin to east station is ${walkMinutes(eastStop, liang)}`);
+const fromYiap = advise(placeById("yiap"), liang, hkDate(2026, 10, 14, 10, 5));
+expect(fromYiap.status === "bus", `康本园 to the east pin should still have a close bus, got ${fromYiap.status}`);
+if (fromYiap.status === "bus") {
+  expect(fromYiap.bus.alight.id === "shaw-up" || fromYiap.bus.alight.id === "shaw-down", fromYiap.bus.alight.name);
+  expect(fromYiap.bus.walkOutMeters < 120, `alight leftover ${fromYiap.bus.walkOutMeters}`);
+  expect(fromYiap.bus.alight.id !== "cc-east-up", "a kilometre-long leftover walk must not win");
 }
 
 const shortBus = advise(placeById("chung-chi"), placeById("science"), hkDate(2026, 10, 14, 10, 0));

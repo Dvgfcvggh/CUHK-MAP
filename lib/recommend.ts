@@ -3,6 +3,11 @@ import { distanceMeters, placeById, walkMinutes, type Point } from "@/lib/places
 import { inServiceWindow, routesOnClock, timetableLabel, type RouteStop, type ShuttleRoute } from "@/lib/routes";
 
 const MAX_WAIT = 40;
+/** A leftover walk of about a kilometre is not a bus recommendation. */
+const FAR_WALK_METERS = 1000;
+/** Alighting within this beats a much longer leftover walk. */
+const CLOSE_ALIGHT_METERS = 200;
+const LONG_LEFTOVER_METERS = 400;
 /** Straight-line distance at or under this is a short trip: say 走过去就好, and still show a running bus. */
 export const SHORT_TRIP_METERS = 500;
 /** Show 步行更快 when walking beats the full bus trip by this many minutes. The bus stays on the page. */
@@ -16,6 +21,7 @@ export type BusOption = {
   alight: Point;
   walkIn: number;
   walkOut: number;
+  walkOutMeters: number;
   ride: number;
   wait: number | null;
   departLabel: string | null;
@@ -85,6 +91,8 @@ function consider(
   const alight = placeById(alightStop.stopId);
   const walkIn = walkMinutes(origin, board);
   const walkOut = walkMinutes(alight, dest);
+  const walkOutMeters = distanceMeters(alight.lat, alight.lng, dest.lat, dest.lng);
+  if (walkOutMeters >= FAR_WALK_METERS) return null;
   if (walkOut >= direct) return null;
   if (walkIn >= direct) return null;
   if (walkIn + walkOut + 4 >= direct) return null;
@@ -106,6 +114,7 @@ function consider(
       alight,
       walkIn,
       walkOut,
+      walkOutMeters,
       ride,
       wait: null,
       departLabel: null,
@@ -126,6 +135,7 @@ function consider(
     alight,
     walkIn,
     walkOut,
+    walkOutMeters,
     ride,
     wait: departure.wait,
     departLabel: departure.label,
@@ -143,6 +153,11 @@ function better(next: BusOption, current: BusOption | undefined, preferRunning: 
   const nextRunning = next.wait !== null && next.wait <= MAX_WAIT;
   const currentRunning = current.wait !== null && current.wait <= MAX_WAIT;
   if (preferRunning && nextRunning !== currentRunning) return nextRunning;
+  const nextClose = next.walkOutMeters <= CLOSE_ALIGHT_METERS;
+  const currentClose = current.walkOutMeters <= CLOSE_ALIGHT_METERS;
+  if (nextClose !== currentClose && Math.max(next.walkOutMeters, current.walkOutMeters) >= LONG_LEFTOVER_METERS) {
+    return nextClose;
+  }
   const nextScore = next.total ?? Number.POSITIVE_INFINITY;
   const currentScore = current.total ?? Number.POSITIVE_INFINITY;
   if (nextScore !== currentScore) return nextScore < currentScore;

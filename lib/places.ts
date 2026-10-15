@@ -1,8 +1,10 @@
 /**
  * Campus places and walk times.
  * Coordinates come from OpenStreetMap via Nominatim (October 2026),
- * preferring nodes tagged as bus stops. Walk minutes are campus-zone
- * estimates, not straight-line distance.
+ * preferring nodes tagged as bus stops. Walk minutes start from the
+ * campus-zone table, which includes slopes and stairs. When the straight
+ * line is much longer than that short table time, the longer distance
+ * time is used instead.
  */
 
 export type Zone =
@@ -38,6 +40,12 @@ const INTRA: Record<Zone, number> = {
   east: 5,
   hill: 6,
 };
+
+/**
+ * Metres covered in one minute on campus paths. Slower than a flat walk,
+ * because the straight line cuts across slopes and stairs.
+ */
+const SLOPE_PACE_METERS_PER_MIN = 50;
 
 /** Minutes between zones. Symmetric. Includes stairs and slopes. */
 const MATRIX: Record<Zone, Record<Zone, number>> = {
@@ -184,14 +192,17 @@ export function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: n
 }
 
 /**
- * Walk time by campus zone. A pair under 45 metres is treated as the same
- * curb (fixed 2 minutes), not scaled by the metre count.
+ * Walk time. Same place is zero. A pair under 45 metres is the same curb
+ * (fixed 2 minutes), so a short walk does not collapse to zero. Otherwise
+ * the zone table is a floor, and a much longer straight line raises it.
  */
 export function walkMinutes(a: Point, b: Point): number {
   if (a.id === b.id) return 0;
-  if (distanceMeters(a.lat, a.lng, b.lat, b.lng) < 45) return 2;
-  if (a.zone === b.zone) return INTRA[a.zone];
-  return MATRIX[a.zone][b.zone];
+  const meters = distanceMeters(a.lat, a.lng, b.lat, b.lng);
+  if (meters < 45) return 2;
+  const zoneMinutes = a.zone === b.zone ? INTRA[a.zone] : MATRIX[a.zone][b.zone];
+  const distanceMinutes = Math.max(1, Math.ceil(meters / SLOPE_PACE_METERS_PER_MIN));
+  return Math.max(zoneMinutes, distanceMinutes);
 }
 
 export function pointFromMap(lat: number, lng: number): Point {
