@@ -10,6 +10,47 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+let promptEvent: BeforeInstallPromptEvent | null = null;
+let listening = false;
+const promptListeners = new Set<() => void>();
+
+function emitPrompt() {
+  promptListeners.forEach((listener) => listener());
+}
+
+function ensureInstallListener() {
+  if (listening || typeof window === "undefined") return;
+  listening = true;
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    promptEvent = event as BeforeInstallPromptEvent;
+    emitPrompt();
+  });
+  window.addEventListener("appinstalled", () => {
+    promptEvent = null;
+    emitPrompt();
+  });
+}
+
+function subscribePrompt(onChange: () => void) {
+  ensureInstallListener();
+  promptListeners.add(onChange);
+  return () => promptListeners.delete(onChange);
+}
+
+function useInstallPrompt(): BeforeInstallPromptEvent | null {
+  return useSyncExternalStore(subscribePrompt, () => promptEvent, () => null);
+}
+
+function runInstallPrompt() {
+  const current = promptEvent;
+  if (!current) return;
+  void current.prompt().finally(() => {
+    promptEvent = null;
+    emitPrompt();
+  });
+}
+
 function alreadyInstalled(): boolean {
   if (window.matchMedia("(display-mode: standalone)").matches) return true;
   return "standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
@@ -25,22 +66,49 @@ function subscribeInstalled(onChange: () => void) {
   };
 }
 
+const barControl =
+  "h-8 whitespace-nowrap rounded-md border border-input bg-card px-1.5 text-xs text-foreground outline-none focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+
+export function InstallBarButton() {
+  const copy = messages(useLocale());
+  const installed = useSyncExternalStore(subscribeInstalled, alreadyInstalled, () => false);
+  const promptEvent = useInstallPrompt();
+  const [guideOpen, setGuideOpen] = useState(false);
+  if (installed) return null;
+
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-1.5 pt-1">
+      <button
+        type="button"
+        className={barControl}
+        aria-expanded={promptEvent ? undefined : guideOpen}
+        onClick={() => {
+          if (promptEvent) {
+            runInstallPrompt();
+            return;
+          }
+          setGuideOpen((open) => !open);
+        }}
+      >
+        {copy.installAdd}
+      </button>
+      {guideOpen && !promptEvent ? (
+        <p className="max-w-64 text-right text-xs leading-5 text-muted-foreground">{copy.iosGuide}</p>
+      ) : null}
+    </div>
+  );
+}
+
 export function InstallHint() {
   const copy = messages(useLocale());
   const installed = useSyncExternalStore(subscribeInstalled, alreadyInstalled, () => false);
-  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const promptEvent = useInstallPrompt();
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
     }
-    const onPrompt = (event: Event) => {
-      event.preventDefault();
-      setPromptEvent(event as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
   }, []);
 
   if (installed) return null;
@@ -52,9 +120,7 @@ export function InstallHint() {
           <Button
             variant="outline"
             className="h-8 min-h-8 px-3 text-xs"
-            onClick={() => {
-              void promptEvent.prompt().then(() => setPromptEvent(null));
-            }}
+            onClick={() => runInstallPrompt()}
           >
             {copy.installAdd}
           </Button>

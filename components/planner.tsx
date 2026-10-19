@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CampusMap } from "@/components/campus-map";
-import { InstallHint } from "@/components/install-hint";
+import { InstallBarButton, InstallHint } from "@/components/install-hint";
 import {
   messages,
   noteText,
@@ -243,7 +243,10 @@ export function Planner() {
           </h1>
           <p className="text-sm leading-6 text-muted-foreground sm:text-base">{copy.intro}</p>
         </header>
-        <LanguageSwitch locale={locale} />
+        <div className="flex shrink-0 items-start gap-2">
+          <InstallBarButton />
+          <LanguageSwitch locale={locale} />
+        </div>
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-6">
