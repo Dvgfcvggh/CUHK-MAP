@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { LayerGroup, Map as LeafletMap } from "leaflet";
+import { CAMPUS_LATLNG_BOUNDS } from "@/lib/campus-bounds";
 import { STOPS, pointFromMap, type Point } from "@/lib/places";
 
 type CampusMapProps = {
@@ -21,14 +22,8 @@ type MapView = {
   alightId?: string;
 };
 
-/** Campus box. The map cannot be panned outside it. */
-const CAMPUS_BOUNDS: [[number, number], [number, number]] = [
-  [22.408, 114.195],
-  [22.433, 114.218],
-];
-
 function inCampus(lat: number, lng: number): boolean {
-  const [[south, west], [north, east]] = CAMPUS_BOUNDS;
+  const [[south, west], [north, east]] = CAMPUS_LATLNG_BOUNDS;
   return lat >= south && lat <= north && lng >= west && lng <= east;
 }
 
@@ -136,7 +131,7 @@ export function CampusMap({ start, end, boardId, alightId, onPick }: CampusMapPr
       const L = (imported.default ?? imported) as LeafletNs;
       if (disposed) return;
       leafletRef.current = L;
-      const campus = L.latLngBounds(CAMPUS_BOUNDS);
+      const campus = L.latLngBounds(CAMPUS_LATLNG_BOUNDS);
       map = L.map(node, {
         zoomControl: true,
         maxBounds: campus,
@@ -149,7 +144,7 @@ export function CampusMap({ start, end, boardId, alightId, onPick }: CampusMapPr
         map.setMinZoom(map.getZoom());
       };
       fitCampus();
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      L.tileLayer("/tiles/{z}/{x}/{y}", {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       }).addTo(map);

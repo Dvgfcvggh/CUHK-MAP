@@ -1,8 +1,10 @@
+import { messages, pictureText, placeLabel, routeLabel, routeWhenText, windowText } from "../lib/copy";
 import { holidayInfo } from "../lib/hk-time";
 import { nominatimSearchUrl } from "../lib/geocode";
+import { campusTileSpan, parseTilePath, tileAllowed } from "../lib/osm-tiles";
 import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, placeById, pointFromMap, searchPlaces, typedPin, walkMinutes } from "../lib/places";
 import { advise, hkDate, isShortTrip, walkingBeatsBus } from "../lib/recommend";
-import { servicePicture } from "../lib/routes";
+import { ROUTES, routeWhen, servicePicture } from "../lib/routes";
 import { walkApps, walkEndsApart } from "../lib/walk-links";
 import type { TripAdvice } from "../lib/recommend";
 
@@ -338,3 +340,37 @@ console.log("evening", routeOf(evening), evening.status === "bus" ? evening.bus.
 console.log("saturday", routeOf(saturday));
 console.log("special", routeOf(meet), meet.status === "bus" ? meet.bus.timetable : "");
 console.log("close pair 邵逸夫堂–科学馆", Math.round(srrGap), "m");
+
+const hans = messages("zh-Hans");
+const hant = messages("zh-Hant");
+const en = messages("en");
+expect(hans.endsTitle === "起点和终点", hans.endsTitle);
+expect(hant.endsTitle === "起點和終點", hant.endsTitle);
+expect(en.endsTitle === "Start and end", en.endsTitle);
+expect(hans.walkHint.startsWith("目前有bug。"), hans.walkHint);
+expect(!hant.walkHint.includes("目前有bug"), hant.walkHint);
+expect(en.walkHint === "If a map cannot open the route, try another one.", en.walkHint);
+expect(hans.fineLive === "非实时，以交通处为准。", hans.fineLive);
+expect(routeLabel("环回线", "en") === "环回线", "do not invent an English route name");
+expect(routeLabel("环回线", "zh-Hant") === "環回線", routeLabel("环回线", "zh-Hant"));
+expect(placeLabel(placeById("univ-station"), "en") === "大学站", "catalog has no English place name");
+expect(placeLabel(placeById("univ-station"), "zh-Hant") === "大學站", placeLabel(placeById("univ-station"), "zh-Hant"));
+const pin = currentPositionPoint(22.42, 114.2);
+expect(pin.kind === "pin" && placeLabel(pin, "en") === pin.name && placeLabel(pin, "zh-Hant") === pin.name, "map pins keep their label");
+const day = servicePicture(nationalDay);
+expect(pictureText(day, "zh-Hans").summary === day.summary, "simplified service picture stays the original");
+expect(pictureText(day, "zh-Hant").summary.includes("國慶日"), pictureText(day, "zh-Hant").summary);
+expect(pictureText(day, "en").summary.includes("National Day") && pictureText(day, "en").summary.includes("假日线"), pictureText(day, "en").summary);
+for (const route of ROUTES) {
+  expect(routeWhenText(route, "zh-Hans") === routeWhen(route), `${route.id} ${routeWhenText(route, "zh-Hans")}`);
+  expect(windowText(route, "zh-Hans") === route.windowLabel, `${route.id} window`);
+}
+expect(hans.app("google") === "谷歌地图（有时无法正常使用）", hans.app("google"));
+expect(en.app("apple") === "Apple Maps" && en.app("google").startsWith("Google Maps"), en.app("google"));
+const span = campusTileSpan(16);
+expect(tileAllowed(16, span.x0 + 1, span.y0 + 1), "a campus tile is allowed");
+expect(!tileAllowed(11, span.x0, span.y0), "zoom below the map is refused");
+expect(!tileAllowed(20, span.x0, span.y0), "zoom above the map is refused");
+expect(parseTilePath("16", "0", "0") === null, "tiles outside campus are refused");
+expect(parseTilePath("16", String(span.x0 + 1), String(span.y0 + 1)) !== null, "campus path is accepted");
+expect(parseTilePath("16", "../4", "1") === null, "tile path is not an open proxy");
