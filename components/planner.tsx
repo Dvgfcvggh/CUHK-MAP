@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CampusMap } from "@/components/campus-map";
+import { InstallHint } from "@/components/install-hint";
 import {
   messages,
   noteText,
@@ -22,13 +23,15 @@ import {
   distanceMeters,
   commonPlaces,
   nearbyStops,
+  nearestStops,
   otherStops,
+  placeById,
   searchPlaces,
   typedPin,
   type Point,
 } from "@/lib/places";
 import { advise, isShortTrip, walkingBeatsBus, type BusOption, type TripAdvice } from "@/lib/recommend";
-import { ROUTES, servicePicture, type ServicePicture } from "@/lib/routes";
+import { ROUTES, servicePicture, type ServicePicture, type ShuttleRoute } from "@/lib/routes";
 import { walkApps, walkEndsApart, type WalkEnd } from "@/lib/walk-links";
 import { cn } from "@/lib/utils";
 
@@ -317,6 +320,8 @@ export function Planner() {
             </CardContent>
           </Card>
 
+          <NearestStops />
+
           <StopRow selectedId={mode === "start" ? start?.id : end?.id} onPick={choose} />
 
           <ResultCard start={start} end={end} advice={advice} picture={picture} />
@@ -328,21 +333,7 @@ export function Planner() {
         <p className="mt-2 max-w-[65ch] text-sm leading-6 text-muted-foreground">{copy.routesLead}</p>
         <ul className="mt-5 grid gap-2 sm:grid-cols-2">
           {ROUTES.map((route) => (
-            <li key={route.id} className="flex items-start gap-3 rounded-xl border border-border bg-card px-3.5 py-3.5">
-              <span
-                className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-1.5 text-sm font-semibold tabular-nums"
-                style={{ background: route.color, color: inkFor(route.color) }}
-              >
-                {route.id}
-              </span>
-              <span>
-                <span className="block text-base leading-6 font-medium">
-                  {routeLabel(route.name, locale)}
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">{routeWhenText(route, locale)}</span>
-                </span>
-                <span className="mt-1 block text-sm leading-5 text-muted-foreground tabular-nums">{windowText(route, locale)}</span>
-              </span>
-            </li>
+            <RouteDetail key={route.id} route={route} locale={locale} />
           ))}
         </ul>
         <p className="mt-5 max-w-[65ch] text-xs leading-5 text-muted-foreground">
@@ -357,8 +348,131 @@ export function Planner() {
           </a>
           {locale === "en" ? "." : "。"}
         </p>
+        <InstallHint />
       </section>
     </div>
+  );
+}
+
+function NearestStops() {
+  const locale = useLocale();
+  const copy = messages(locale);
+  const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    let cancelled = false;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (cancelled) return;
+        const lat = position.coords?.latitude;
+        const lng = position.coords?.longitude;
+        if (typeof lat !== "number" || typeof lng !== "number" || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        setHere({ lat, lng });
+      },
+      () => {
+        // Permission denied, unavailable, or timed out: leave the card hidden.
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!here) return null;
+  const nearest = nearestStops(here.lat, here.lng, 3);
+  if (nearest.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{copy.nearbyTitle}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ol className="flex flex-col">
+          {nearest.map((item) => (
+            <li key={item.stop.id} className="border-t border-border py-2.5 first:border-t-0 first:pt-0">
+              <p className="text-base font-medium">{placeLabel(item.stop, locale)}</p>
+              <p className="text-sm leading-6 text-muted-foreground tabular-nums">{copy.nearbyLine(item.meters, item.minutes)}</p>
+            </li>
+          ))}
+        </ol>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RouteDetail({ route, locale }: { route: ShuttleRoute; locale: Locale }) {
+  const [open, setOpen] = useState(false);
+  const copy = messages(locale);
+  const minutes = route.minutes.map((minute) => String(minute).padStart(2, "0")).join(locale === "en" ? ", " : "、");
+  return (
+    <li className="rounded-xl border border-border bg-card">
+      <button
+        type="button"
+        className="flex w-full items-start gap-3 px-3.5 py-3.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span
+          className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-1.5 text-sm font-semibold tabular-nums"
+          style={{ background: route.color, color: inkFor(route.color) }}
+        >
+          {route.id}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-base leading-6 font-medium">
+            {routeLabel(route.name, locale)}
+            <span className="ml-2 text-sm font-normal text-muted-foreground">{routeWhenText(route, locale)}</span>
+          </span>
+          <span className="mt-1 block text-sm leading-5 text-muted-foreground tabular-nums">{windowText(route, locale)}</span>
+        </span>
+        <svg
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+          className={cn(
+            "mt-1 size-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
+            open && "rotate-90",
+          )}
+        >
+          <path
+            d="M6 3.5 11 8 6 12.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open ? (
+        <div className="border-t border-border px-3.5 py-3">
+          <p className="text-sm leading-6 tabular-nums">
+            {copy.routeFirst} {route.first}
+            <span className="mx-2 text-muted-foreground">·</span>
+            {copy.routeLast} {route.last}
+          </p>
+          <p className="text-sm leading-6 text-muted-foreground tabular-nums">{copy.routeMinutes(minutes)}</p>
+          <p className="mt-3 text-sm font-medium">{copy.routeStops}</p>
+          <ol className="mt-1 flex flex-col">
+            {route.stops.map((stop, index) => {
+              const place = placeById(stop.stopId);
+              return (
+                <li key={`${route.id}-${index}`} className="py-1 text-sm leading-6">
+                  <span className="tabular-nums text-muted-foreground">{index + 1}. </span>
+                  {placeLabel(place, locale)}
+                  {stop.remark ? (
+                    <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">{remarkText(stop.remark, locale)}</span>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ol>
+          {route.note ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{noteText(route.note, locale)}</p> : null}
+        </div>
+      ) : null}
+    </li>
   );
 }
 

@@ -264,3 +264,26 @@ export function nearbyStops(
 }
 
 export const CAMPUS_CENTER = { lat: 22.419, lng: 114.207 };
+
+/** Three nearest shuttle stops to a GPS fix, with straight-line metres and walkMinutes. */
+export function nearestStops(
+  lat: number,
+  lng: number,
+  count = 3,
+): { stop: Point; meters: number; minutes: number }[] {
+  const here: Point = {
+    id: `gps:${lat.toFixed(5)},${lng.toFixed(5)}`,
+    name: "",
+    lat,
+    lng,
+    zone: pointFromMap(lat, lng).zone,
+    kind: "pin",
+  };
+  return STOPS.map((stop) => ({
+    stop,
+    meters: distanceMeters(lat, lng, stop.lat, stop.lng),
+    minutes: walkMinutes(here, stop),
+  }))
+    .sort((a, b) => a.meters - b.meters || a.stop.id.localeCompare(b.stop.id))
+    .slice(0, count);
+}
