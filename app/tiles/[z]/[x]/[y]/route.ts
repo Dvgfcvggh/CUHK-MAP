@@ -1,8 +1,6 @@
 import { connection } from "next/server";
 import { OSM_TILE_REFERER, OSM_TILE_USER_AGENT, osmTileUrl, parseTilePath, subdomainOrder } from "@/lib/osm-tiles";
 
-export const dynamic = "force-dynamic";
-
 const TILE_CACHE = "public, max-age=604800, s-maxage=604800, stale-while-revalidate=86400";
 
 async function fetchOsmTile(url: string): Promise<Response | null> {
