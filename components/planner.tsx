@@ -331,7 +331,7 @@ export function Planner() {
       <section className="flex flex-col border-t border-border pt-10">
         <h2 className="font-heading text-xl leading-7 font-semibold tracking-normal">{copy.routes}</h2>
         <p className="mt-2 max-w-[65ch] text-sm leading-6 text-muted-foreground">{copy.routesLead}</p>
-        <ul className="mt-5 grid gap-2 sm:grid-cols-2">
+        <ul className="mt-5 grid items-start gap-2 sm:grid-cols-2">
           {ROUTES.map((route) => (
             <RouteDetail key={route.id} route={route} locale={locale} />
           ))}
