@@ -204,6 +204,28 @@ export function advise(origin: Point, dest: Point, now: Date): TripAdvice {
   return { status: "none", directMin: direct };
 }
 
+/** One running option per route that can finish this trip now, soonest total first. */
+export function routeChoices(origin: Point, dest: Point, now: Date): BusOption[] {
+  const direct = walkMinutes(origin, dest);
+  if (origin.id === dest.id || direct === 0) return [];
+  const byRoute = new Map<string, BusOption>();
+  for (const route of routesOnClock(now)) {
+    for (let i = 0; i < route.stops.length; i += 1) {
+      for (let j = i + 1; j < route.stops.length; j += 1) {
+        const option = consider(route, route.stops[i], route.stops[j], j - i, origin, dest, direct, now);
+        if (!option || option.wait === null || option.wait > MAX_WAIT || option.total === null) continue;
+        const current = byRoute.get(route.id);
+        if (better(option, current, true)) byRoute.set(route.id, option);
+      }
+    }
+  }
+  return [...byRoute.values()].sort((a, b) => {
+    const diff = (a.total ?? 0) - (b.total ?? 0);
+    if (diff !== 0) return diff;
+    return a.routeId < b.routeId ? -1 : 1;
+  });
+}
+
 export function formatWait(wait: number): string {
   if (wait <= 0) return "现在这班刚开出或即将开出";
   return `大约还要等 ${wait} 分钟`;

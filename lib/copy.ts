@@ -638,6 +638,13 @@ export function messages(locale: Locale) {
       if (hant) return `每小時 ${list} 分`;
       return `每小时 ${list} 分`;
     },
+    author: en ? "By Dvgfcvggh" : "作者 Dvgfcvggh",
+    routeOptions: en ? "Routes" : hant ? "路線" : "路线",
+    optionMinutes(total: number) {
+      if (en) return `${total} min`;
+      if (hant) return `${total} 分鐘`;
+      return `${total} 分钟`;
+    },
     installAdd: en ? "Add to Home Screen" : hant ? "加入主畫面" : "添加到主屏幕",
     installLater: en ? "Not now" : hant ? "以後再說" : "以后再说",
     iosGuide: en

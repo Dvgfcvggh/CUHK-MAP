@@ -3,7 +3,7 @@ import { holidayInfo } from "../lib/hk-time";
 import { nominatimSearchUrl } from "../lib/geocode";
 import { campusTileSpan, parseTilePath, tileAllowed } from "../lib/osm-tiles";
 import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, nearestStops, placeById, pointFromMap, searchPlaces, typedPin, walkMinutes } from "../lib/places";
-import { advise, hkDate, isShortTrip, walkingBeatsBus } from "../lib/recommend";
+import { advise, hkDate, isShortTrip, routeChoices, walkingBeatsBus } from "../lib/recommend";
 import { ROUTES, routeWhen, servicePicture } from "../lib/routes";
 import { walkApps, walkEndsApart } from "../lib/walk-links";
 import type { TripAdvice } from "../lib/recommend";
@@ -344,6 +344,22 @@ console.log("close pair 邵逸夫堂–科学馆", Math.round(srrGap), "m");
 const hans = messages("zh-Hans");
 const hant = messages("zh-Hant");
 const en = messages("en");
+expect(hans.author === "作者 Dvgfcvggh" && hant.author === "作者 Dvgfcvggh" && en.author === "By Dvgfcvggh", en.author);
+const stationToShaw = routeChoices(placeById("univ-station"), placeById("srr"), wedSoon);
+expect(stationToShaw.length >= 1, "a running trip lists at least one route");
+expect(new Set(stationToShaw.map((item) => item.routeId)).size === stationToShaw.length, "one option per route");
+for (let index = 1; index < stationToShaw.length; index += 1) {
+  expect((stationToShaw[index].total ?? 0) >= (stationToShaw[index - 1].total ?? 0), "choices are sorted by total time");
+}
+if (toSrr.status === "bus") {
+  const recommended = stationToShaw.find((item) => item.routeId === toSrr.bus.routeId);
+  expect(
+    recommended?.board.id === toSrr.bus.board.id &&
+      recommended.alight.id === toSrr.bus.alight.id &&
+      recommended.total === toSrr.bus.total,
+    `${recommended?.routeId} ${recommended?.board.id} ${recommended?.total}`,
+  );
+}
 expect(hans.endsTitle === "起点和终点", hans.endsTitle);
 expect(hant.endsTitle === "起點和終點", hant.endsTitle);
 expect(en.endsTitle === "Start and end", en.endsTitle);

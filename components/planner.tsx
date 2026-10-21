@@ -30,7 +30,7 @@ import {
   typedPin,
   type Point,
 } from "@/lib/places";
-import { advise, isShortTrip, walkingBeatsBus, type BusOption, type TripAdvice } from "@/lib/recommend";
+import { advise, isShortTrip, routeChoices, walkingBeatsBus, type BusOption, type TripAdvice } from "@/lib/recommend";
 import { ROUTES, servicePicture, type ServicePicture, type ShuttleRoute } from "@/lib/routes";
 import { walkApps, walkEndsApart, type WalkEnd } from "@/lib/walk-links";
 import { cn } from "@/lib/utils";
@@ -108,6 +108,11 @@ export function Planner() {
     if (!start || !end || nowMs === 0) return null;
     return advise(start, end, new Date(nowMs));
   }, [start, end, nowMs]);
+  const choices = useMemo<BusOption[]>(() => {
+    if (!start || !end || nowMs === 0 || advice?.status !== "bus") return [];
+    return routeChoices(start, end, new Date(nowMs));
+  }, [start, end, nowMs, advice]);
+  const [pickedRouteId, setPickedRouteId] = useState<string | null>(null);
 
   function choose(point: Point) {
     setLocationNote(null);
@@ -217,7 +222,14 @@ export function Planner() {
     );
   }
 
-  const highlighted = advice && "bus" in advice ? advice.bus : undefined;
+  const highlighted =
+    advice?.status === "bus"
+      ? !pickedRouteId || pickedRouteId === advice.bus.routeId
+        ? advice.bus
+        : (choices.find((item) => item.routeId === pickedRouteId) ?? advice.bus)
+      : advice && "bus" in advice
+        ? advice.bus
+        : undefined;
   const boardId = highlighted?.board.id;
   const alightId = highlighted?.alight.id;
 
@@ -327,7 +339,15 @@ export function Planner() {
 
           <StopRow selectedId={mode === "start" ? start?.id : end?.id} onPick={choose} />
 
-          <ResultCard start={start} end={end} advice={advice} picture={picture} />
+          <ResultCard
+            start={start}
+            end={end}
+            advice={advice}
+            picture={picture}
+            choices={choices}
+            pickedRouteId={highlighted?.routeId ?? null}
+            onPickRoute={setPickedRouteId}
+          />
         </div>
       </div>
 
@@ -351,6 +371,7 @@ export function Planner() {
           </a>
           {locale === "en" ? "." : "。"}
         </p>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">{copy.author}</p>
         <InstallHint />
       </section>
     </div>
@@ -634,11 +655,17 @@ function ResultCard({
   end,
   advice,
   picture,
+  choices,
+  pickedRouteId,
+  onPickRoute,
 }: {
   start: Point | null;
   end: Point | null;
   advice: TripAdvice | null;
   picture: ServicePicture | null;
+  choices: BusOption[];
+  pickedRouteId: string | null;
+  onPickRoute: (routeId: string) => void;
 }) {
   const locale = useLocale();
   const copy = messages(locale);
@@ -704,27 +731,57 @@ function ResultCard({
   }
 
   if (advice.status === "bus") {
-    const title = advice.bus.special ? copy.suggestMeet(advice.bus.routeId) : copy.suggestLine(advice.bus.routeId);
-    const mentionWalk = walkingBeatsBus(advice.directMin, advice.bus) || isShortTrip(start, end);
+    const active =
+      !pickedRouteId || pickedRouteId === advice.bus.routeId
+        ? advice.bus
+        : (choices.find((item) => item.routeId === pickedRouteId) ?? advice.bus);
+    const options = choices.some((item) => item.routeId === advice.bus.routeId) ? choices : [advice.bus, ...choices];
+    const mentionWalk = walkingBeatsBus(advice.directMin, active) || isShortTrip(start, end);
+    const fasterRecommended = walkingBeatsBus(advice.directMin, advice.bus);
     return (
       <Card>
         <CardHeader>
-          <CardTitle className={answerTitle}>{title}</CardTitle>
-          <CardDescription className={answerLead}>
-            {copy.busLead(
-              routeLabel(advice.bus.routeName, locale),
-              timetableFor(advice.bus.routeId, advice.bus.timetable, locale),
-              advice.bus.total ?? 0,
-              advice.directMin,
-            )}
-          </CardDescription>
+          <div className="flex gap-2 overflow-x-auto" role="tablist" aria-label={copy.routeOptions}>
+            {options.map((option) => {
+              const selected = option.routeId === active.routeId;
+              return (
+                <button
+                  key={option.routeId}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  className={cn(
+                    "flex h-auto min-h-11 shrink-0 flex-col items-start justify-center rounded-lg border px-3 py-2 text-left",
+                    selected ? "border-primary/25 bg-accent text-accent-foreground" : "border-border bg-card text-foreground",
+                  )}
+                  onClick={() => onPickRoute(option.routeId)}
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-xs font-semibold tabular-nums"
+                      style={{ background: option.color, color: inkFor(option.color) }}
+                    >
+                      {option.routeId}
+                    </span>
+                    <span className="text-sm font-medium">{routeLabel(option.routeName, locale)}</span>
+                  </span>
+                  <span className={cn("mt-1 text-xs tabular-nums", selected ? "text-accent-foreground" : "text-muted-foreground")}>
+                    {copy.optionMinutes(option.total ?? 0)}
+                  </span>
+                  {option.routeId === advice.bus.routeId && fasterRecommended ? (
+                    <span className="text-xs font-medium">{copy.fasterTitle}</span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <TripNotes start={start} end={end} directMin={advice.directMin} bus={advice.bus} />
-          <BusDetail bus={advice.bus} />
-          <WalkChoices title={copy.walkToBoard} origin={start} destination={advice.bus.board} />
+          <TripNotes start={start} end={end} directMin={advice.directMin} bus={active} />
+          <BusDetail bus={active} />
+          <WalkChoices title={copy.walkToBoard} origin={start} destination={active.board} />
           {/* This leg starts at the alighting stop, not the campus center or the user's start. */}
-          <WalkChoices title={copy.walkFromAlight} origin={advice.bus.alight} destination={end} />
+          <WalkChoices title={copy.walkFromAlight} origin={active.alight} destination={end} />
           {mentionWalk ? <WalkChoices title={copy.walkDirect} origin={start} destination={end} /> : null}
           {fine}
         </CardContent>
