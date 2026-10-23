@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CampusMap } from "@/components/campus-map";
-import { InstallBarButton, InstallHint } from "@/components/install-hint";
+import { InstallBarButton, InstallBarNote, InstallHint } from "@/components/install-hint";
 import {
   messages,
   noteText,
@@ -248,18 +248,18 @@ export function Planner() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-5 pb-16 sm:py-8">
-      <div className="flex items-start justify-between gap-3">
-        <header className="flex min-w-0 max-w-[65ch] flex-col gap-3">
-          <h1 className="font-heading text-balance text-[1.75rem] leading-8 font-semibold tracking-normal text-foreground sm:text-[2rem] sm:leading-9">
+      <header className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <h1 className="shrink-0 whitespace-nowrap font-heading text-[1.75rem] leading-8 font-semibold tracking-normal text-foreground sm:text-[2rem] sm:leading-9">
             {copy.title}
           </h1>
-          <p className="text-sm leading-6 text-muted-foreground sm:text-base">{copy.intro}</p>
-        </header>
-        <div className="flex shrink-0 items-start gap-2">
-          <InstallBarButton />
-          <LanguageSwitch locale={locale} />
+          <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
+            <InstallBarButton />
+            <LanguageSwitch locale={locale} />
+          </div>
         </div>
-      </div>
+        <InstallBarNote />
+      </header>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-6">
         <div className="lg:sticky lg:top-4">
@@ -359,7 +359,9 @@ export function Planner() {
             <RouteDetail key={route.id} route={route} locale={locale} />
           ))}
         </ul>
-        <p className="mt-5 max-w-[65ch] text-xs leading-5 text-muted-foreground">
+        <InstallHint />
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">{copy.author}</p>
+        <p className="mt-4 w-full text-sm leading-6 text-muted-foreground">
           {copy.routesFoot}{" "}
           <a
             className="text-primary underline underline-offset-4 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -371,8 +373,6 @@ export function Planner() {
           </a>
           {locale === "en" ? "." : "。"}
         </p>
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">{copy.author}</p>
-        <InstallHint />
       </section>
     </div>
   );
@@ -502,7 +502,7 @@ function RouteDetail({ route, locale }: { route: ShuttleRoute; locale: Locale })
 
 function LanguageSwitch({ locale }: { locale: Locale }) {
   return (
-    <label className="flex shrink-0 items-center gap-1.5 pt-1 text-xs leading-5 text-muted-foreground">
+    <label className="flex shrink-0 items-center gap-1.5 text-xs leading-5 text-muted-foreground">
       <span className="whitespace-nowrap">语言/language</span>
       <select
         value={locale}

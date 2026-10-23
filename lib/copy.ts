@@ -407,11 +407,6 @@ export function messages(locale: Locale) {
   const term = en ? "First term, 2026–27" : hant ? "2026–27 學年第一學期" : "2026–27 学年第一学期";
   return {
     title: en ? "CUHK Shuttle Bus" : "中大穿梭校巴",
-    intro: en
-      ? `${term}. The timetable is static, not live. Follow the Transport Office. Teaching days, evenings, and holidays follow Hong Kong time. Choose a start and an end to see which route to take, where to board, and where to alight.`
-      : hant
-        ? `${term}。班次是靜態時刻表，非實時，以交通處為準。按香港時間區分上課日、晚間和假日。選出起點和終點，看該乘哪一路、在哪一站上、在哪一站下。`
-        : `${term}。班次是静态时刻表，非实时，以交通处为准。按香港时间区分上课日、晚间和假日。选出起点和终点，看该乘哪一路、在哪一站上、在哪一站下。`,
     mapKey: en
       ? "Grey dots are bus stops · green is the start · red is the end · OpenStreetMap"
       : hant
@@ -454,10 +449,10 @@ export function messages(locale: Locale) {
         ? "整理自交通處穿梭校巴和轉堂校巴頁面（2026 年 10 月）。收費小巴不在這裡。校巴是中大學生和教職員專車。"
         : "整理自交通处穿梭校巴和转堂校巴页面（2026 年 10 月）。收费小巴不在这里。校巴是中大学生和教职员专车。",
     routesFoot: en
-      ? "Monday to Saturday (except public holidays), evenings follow route N, 19:00–23:30, with no separate switch. Sundays and Hong Kong public holidays use 假日线 H. Meet-class routes 5, 6A, 6B, and 7 are suggested only in Monday–Friday windows, and not on Saturday. Walking times are estimates by campus zone. Source:"
+      ? `${term}. The timetable is static, not live. Teaching days, evenings, and holidays follow Hong Kong time. Choose a start and an end to see which route to take, where to board, and where to alight. Monday to Saturday (except public holidays), evenings follow route N, 19:00–23:30, with no separate switch. Sundays and Hong Kong public holidays use 假日线 H. Meet-class routes 5, 6A, 6B, and 7 are suggested only in Monday–Friday windows, and not on Saturday. Walking times are estimates by campus zone. Source:`
       : hant
-        ? "星期一至六（公眾假期除外）的晚間按 N 線 19:00–23:30，沒有單獨開關。星期日和香港公眾假期走假日線 H。轉堂校巴 5、6A、6B、7 只在星期一至五的時段裡建議，星期六不開。步行時間按校園分區估算。出處："
-        : "星期一至六（公众假期除外）的晚间按 N 线 19:00–23:30，没有单独开关。星期日和香港公众假期走假日线 H。转堂校巴 5、6A、6B、7 只在星期一至五的时段里建议，星期六不开。步行时间按校园分区估算。出处：",
+        ? `${term}。班次是靜態時刻表，非實時。按香港時間區分上課日、晚間和假日。選出起點和終點，看該乘哪一路、在哪一站上、在哪一站下。星期一至六（公眾假期除外）的晚間按 N 線 19:00–23:30，沒有單獨開關。星期日和香港公眾假期走假日線 H。轉堂校巴 5、6A、6B、7 只在星期一至五的時段裡建議，星期六不開。步行時間按校園分區估算。出處：`
+        : `${term}。班次是静态时刻表，非实时。按香港时间区分上课日、晚间和假日。选出起点和终点，看该乘哪一路、在哪一站上、在哪一站下。星期一至六（公众假期除外）的晚间按 N 线 19:00–23:30，没有单独开关。星期日和香港公众假期走假日线 H。转堂校巴 5、6A、6B、7 只在星期一至五的时段里建议，星期六不开。步行时间按校园分区估算。出处：`,
     office: en ? "CUHK Transport Office" : hant ? "香港中文大學交通處" : "香港中文大学交通处",
     notReadyTitle: en ? "Not chosen yet" : hant ? "還沒選好" : "还没选好",
     notReadyLead: en

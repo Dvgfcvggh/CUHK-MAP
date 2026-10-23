@@ -69,34 +69,61 @@ function subscribeInstalled(onChange: () => void) {
 const barControl =
   "h-8 whitespace-nowrap rounded-md border border-input bg-card px-1.5 text-xs text-foreground outline-none focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
+let guideOpen = false;
+const guideListeners = new Set<() => void>();
+
+function emitGuide() {
+  guideListeners.forEach((listener) => listener());
+}
+
+function subscribeGuide(onChange: () => void) {
+  guideListeners.add(onChange);
+  return () => {
+    guideListeners.delete(onChange);
+  };
+}
+
+function useGuideOpen() {
+  return useSyncExternalStore(subscribeGuide, () => guideOpen, () => false);
+}
+
+function toggleGuide() {
+  guideOpen = !guideOpen;
+  emitGuide();
+}
+
 export function InstallBarButton() {
   const copy = messages(useLocale());
   const installed = useSyncExternalStore(subscribeInstalled, alreadyInstalled, () => false);
   const promptEvent = useInstallPrompt();
-  const [guideOpen, setGuideOpen] = useState(false);
+  const open = useGuideOpen();
   if (installed) return null;
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-1.5 pt-1">
-      <button
-        type="button"
-        className={barControl}
-        aria-expanded={promptEvent ? undefined : guideOpen}
-        onClick={() => {
-          if (promptEvent) {
-            runInstallPrompt();
-            return;
-          }
-          setGuideOpen((open) => !open);
-        }}
-      >
-        {copy.installAdd}
-      </button>
-      {guideOpen && !promptEvent ? (
-        <p className="max-w-64 text-right text-xs leading-5 text-muted-foreground">{copy.iosGuide}</p>
-      ) : null}
-    </div>
+    <button
+      type="button"
+      className={barControl}
+      aria-expanded={promptEvent ? undefined : open}
+      onClick={() => {
+        if (promptEvent) {
+          runInstallPrompt();
+          return;
+        }
+        toggleGuide();
+      }}
+    >
+      {copy.installAdd}
+    </button>
   );
+}
+
+export function InstallBarNote() {
+  const copy = messages(useLocale());
+  const installed = useSyncExternalStore(subscribeInstalled, alreadyInstalled, () => false);
+  const promptEvent = useInstallPrompt();
+  const open = useGuideOpen();
+  if (installed || promptEvent || !open) return null;
+  return <p className="w-full text-xs leading-5 text-muted-foreground">{copy.iosGuide}</p>;
 }
 
 export function InstallHint() {
@@ -114,7 +141,7 @@ export function InstallHint() {
   if (installed) return null;
 
   return (
-    <div className="mt-4 flex max-w-[65ch] flex-col gap-2">
+    <div className="mt-4 flex w-full flex-col gap-2">
       {promptEvent && !hidden ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -129,7 +156,7 @@ export function InstallHint() {
           </Button>
         </div>
       ) : null}
-      <p className="text-xs leading-5 text-muted-foreground">{copy.iosGuide}</p>
+      <p className="w-full text-xs leading-5 text-muted-foreground">{copy.iosGuide}</p>
     </div>
   );
 }

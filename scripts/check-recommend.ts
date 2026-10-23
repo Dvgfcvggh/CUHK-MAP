@@ -345,6 +345,32 @@ const hans = messages("zh-Hans");
 const hant = messages("zh-Hant");
 const en = messages("en");
 expect(hans.author === "作者 Dvgfcvggh" && hant.author === "作者 Dvgfcvggh" && en.author === "By Dvgfcvggh", en.author);
+expect(!("intro" in hans), "the term line is not a separate intro");
+expect(
+  hans.routesFoot.startsWith("2026–27 学年第一学期") &&
+    hans.routesFoot.includes("班次是静态时刻表，非实时") &&
+    hans.routesFoot.includes("按香港时间区分上课日、晚间和假日") &&
+    hans.routesFoot.includes("选出起点和终点") &&
+    hans.routesFoot.includes("晚间按 N 线") &&
+    !hans.routesFoot.includes("以交通处为准"),
+  hans.routesFoot,
+);
+expect(
+  hant.routesFoot.startsWith("2026–27 學年第一學期") &&
+    hant.routesFoot.includes("班次是靜態時刻表，非實時") &&
+    hant.routesFoot.includes("假日線 H") &&
+    !hant.routesFoot.includes("以交通處為準"),
+  hant.routesFoot,
+);
+expect(
+  en.routesFoot.startsWith("First term, 2026–27") &&
+    en.routesFoot.includes("The timetable is static, not live") &&
+    en.routesFoot.includes("follow Hong Kong time") &&
+    en.routesFoot.includes("where to alight") &&
+    en.routesFoot.includes("route N") &&
+    !en.routesFoot.includes("Follow the Transport Office"),
+  en.routesFoot,
+);
 const stationToShaw = routeChoices(placeById("univ-station"), placeById("srr"), wedSoon);
 expect(stationToShaw.length >= 1, "a running trip lists at least one route");
 expect(new Set(stationToShaw.map((item) => item.routeId)).size === stationToShaw.length, "one option per route");
