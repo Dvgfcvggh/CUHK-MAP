@@ -28,7 +28,7 @@ import {
   typedPin,
   type Point,
 } from "@/lib/places";
-import { advise, isShortTrip, routeChoices, walkingBeatsBus, type BusOption, type TripAdvice } from "@/lib/recommend";
+import { advise, isShortTrip, routeAdvantage, routeChoices, walkingBeatsBus, type BusOption, type TripAdvice } from "@/lib/recommend";
 import { ROUTES, servicePicture, type ServicePicture, type ShuttleRoute } from "@/lib/routes";
 import { walkApps, walkEndsApart, type WalkEnd } from "@/lib/walk-links";
 import { cn } from "@/lib/utils";
@@ -685,12 +685,14 @@ function ResultCard({
     const options = choices.some((item) => item.routeId === advice.bus.routeId) ? choices : [advice.bus, ...choices];
     const mentionWalk = walkingBeatsBus(advice.directMin, active) || isShortTrip(start, end);
     const fasterRecommended = walkingBeatsBus(advice.directMin, advice.bus);
+    const advantages = routeAdvantage(options);
     return (
       <Card>
         <CardHeader>
           <div className="flex gap-2 overflow-x-auto" role="tablist" aria-label={copy.routeOptions}>
-            {options.map((option) => {
+            {options.map((option, index) => {
               const selected = option.routeId === active.routeId;
+              const advantage = advantages[index];
               return (
                 <button
                   key={option.routeId}
@@ -710,10 +712,18 @@ function ResultCard({
                     >
                       {option.routeId}
                     </span>
-                    <span className="text-sm font-medium">{routeLabel(option.routeName, locale)}</span>
+                    <span className="whitespace-nowrap text-sm font-medium">{routeLabel(option.routeName, locale)}</span>
                   </span>
-                  <span className={cn("mt-1 text-xs tabular-nums", selected ? "text-accent-foreground" : "text-muted-foreground")}>
-                    {copy.optionMinutes(option.total ?? 0)}
+                  <span className="mt-1 flex items-baseline gap-1.5 whitespace-nowrap">
+                    <span className={cn("text-xs tabular-nums", selected ? "text-accent-foreground" : "text-muted-foreground")}>
+                      {copy.optionMinutes(option.total ?? 0)}
+                    </span>
+                    {advantage?.shortestTime ? (
+                      <span className="text-[10px] leading-4 font-medium">{copy.shortestTime}</span>
+                    ) : null}
+                    {advantage?.shortestWalk ? (
+                      <span className="text-[10px] leading-4 font-medium">{copy.shortestWalk}</span>
+                    ) : null}
                   </span>
                   {option.routeId === advice.bus.routeId && fasterRecommended ? (
                     <span className="text-xs font-medium">{copy.fasterTitle}</span>

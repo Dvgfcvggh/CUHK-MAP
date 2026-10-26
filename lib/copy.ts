@@ -633,6 +633,8 @@ export function messages(locale: Locale) {
       if (hant) return `${total} 分鐘`;
       return `${total} 分钟`;
     },
+    shortestTime: en ? "Shortest time" : hant ? "時長最短" : "时长最短",
+    shortestWalk: en ? "Shortest walk" : "步行最短",
     installAdd: en ? "Add to Home Screen" : hant ? "加入主畫面" : "添加到主屏幕",
     installLater: en ? "Not now" : hant ? "以後再說" : "以后再说",
     iosGuide: en

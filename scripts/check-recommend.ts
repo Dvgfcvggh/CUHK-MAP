@@ -3,7 +3,7 @@ import { holidayInfo } from "../lib/hk-time";
 import { nominatimSearchUrl } from "../lib/geocode";
 import { campusTileSpan, parseTilePath, tileAllowed } from "../lib/osm-tiles";
 import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, nearestStops, placeById, pointFromMap, searchPlaces, typedPin, walkMinutes } from "../lib/places";
-import { advise, hkDate, isShortTrip, routeChoices, walkingBeatsBus } from "../lib/recommend";
+import { advise, hkDate, isShortTrip, routeAdvantage, routeChoices, walkingBeatsBus } from "../lib/recommend";
 import { ROUTES, routeWhen, servicePicture } from "../lib/routes";
 import { walkApps, walkEndsApart } from "../lib/walk-links";
 import type { BusOption, TripAdvice } from "../lib/recommend";
@@ -417,6 +417,23 @@ expect(hant.endsTitle === "起點和終點", hant.endsTitle);
 expect(en.endsTitle === "Start and end", en.endsTitle);
 expect(!("nearbyTitle" in hans) && !("nearbyLine" in hans), "the nearest-stops card copy is gone");
 expect(hans.useHere === "使用当前位置" && hant.useHere === "使用目前位置" && en.useHere === "Use current location", en.useHere);
+expect(hans.shortestTime === "时长最短" && hant.shortestTime === "時長最短" && en.shortestTime === "Shortest time", en.shortestTime);
+expect(hans.shortestWalk === "步行最短" && hant.shortestWalk === "步行最短" && en.shortestWalk === "Shortest walk", en.shortestWalk);
+const marks = routeAdvantage([
+  { total: 20, walkIn: 5, walkOut: 4 },
+  { total: 20, walkIn: 2, walkOut: 2 },
+  { total: 30, walkIn: 8, walkOut: 1 },
+]);
+expect(marks[0].shortestTime && !marks[0].shortestWalk, "tied shortest time still gets the time label");
+expect(marks[1].shortestTime && marks[1].shortestWalk, "a route can carry both labels");
+expect(!marks[2].shortestTime && !marks[2].shortestWalk, "a route that wins neither gets no label");
+const walkTie = routeAdvantage([
+  { total: 10, walkIn: 3, walkOut: 3 },
+  { total: 12, walkIn: 4, walkOut: 2 },
+]);
+expect(walkTie[0].shortestTime && walkTie[0].shortestWalk && !walkTie[1].shortestTime && walkTie[1].shortestWalk, "tied walks all get 步行最短");
+const only = routeAdvantage([{ total: 15, walkIn: 1, walkOut: 1 }]);
+expect(only[0].shortestTime && only[0].shortestWalk, "the only route is shortest on both");
 expect(hans.routeStops === "沿线站点" && hant.routeStops === "沿線站點" && en.routeStops === "Stops in order", en.routeStops);
 const gps = nearestStops(station.lat, station.lng, 3);
 expect(gps.length === 3 && gps[0].stop.id === "univ-station", gps.map((item) => item.stop.id).join(","));

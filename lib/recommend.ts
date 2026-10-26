@@ -233,6 +233,17 @@ export function routeChoices(origin: Point, dest: Point, now: Date): BusOption[]
   });
 }
 
+/** Display marks for the route chips. Does not change which route is recommended or the sort. */
+export function routeAdvantage(options: Pick<BusOption, "total" | "walkIn" | "walkOut">[]): { shortestTime: boolean; shortestWalk: boolean }[] {
+  if (options.length === 0) return [];
+  const minTotal = Math.min(...options.map((option) => option.total ?? Number.POSITIVE_INFINITY));
+  const minWalk = Math.min(...options.map((option) => option.walkIn + option.walkOut));
+  return options.map((option) => ({
+    shortestTime: (option.total ?? Number.POSITIVE_INFINITY) === minTotal,
+    shortestWalk: option.walkIn + option.walkOut === minWalk,
+  }));
+}
+
 export function formatWait(wait: number): string {
   if (wait <= 0) return "现在这班刚开出或即将开出";
   return `大约还要等 ${wait} 分钟`;
