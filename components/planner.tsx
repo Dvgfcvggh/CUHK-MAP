@@ -250,9 +250,12 @@ export function Planner() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-5 pb-16 sm:py-8">
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <h1 className="shrink-0 whitespace-nowrap font-heading text-[1.75rem] leading-8 font-semibold tracking-normal text-foreground sm:text-[2rem] sm:leading-9">
-            {copy.title}
-          </h1>
+          <div className="shrink-0">
+            <h1 className="whitespace-nowrap font-heading text-[1.75rem] leading-8 font-semibold tracking-normal text-foreground sm:text-[2rem] sm:leading-9">
+              {copy.title}
+            </h1>
+            <p className="m-0 text-right text-[11px] leading-4 text-muted-foreground">{copy.author}</p>
+          </div>
           <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
             <InstallBarButton />
             <LanguageSwitch locale={locale} />
@@ -881,6 +884,10 @@ function BusDetail({ bus, compact = false }: { bus: BusOption; compact?: boolean
           <span className="text-base font-medium">{placeLabel(bus.board, locale)}</span>
           <span className="text-sm text-muted-foreground tabular-nums">{copy.walkIn(bus.walkIn)}</span>
         </li>
+        <BetweenStops
+          key={`${bus.routeId}:${bus.board.id}:${bus.alight.id}:${bus.betweenIds.join(",")}`}
+          ids={bus.betweenIds}
+        />
         <li className="flex flex-col gap-0.5 py-2.5">
           <span className="text-sm text-muted-foreground">{copy.alight}</span>
           <span className="text-base font-medium">{placeLabel(bus.alight, locale)}</span>
@@ -904,6 +911,58 @@ function BusDetail({ bus, compact = false }: { bus: BusOption; compact?: boolean
       ))}
       {bus.routeNote ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{noteText(bus.routeNote, locale)}</p> : null}
     </div>
+  );
+}
+
+function BetweenStops({ ids }: { ids: string[] }) {
+  const locale = useLocale();
+  const copy = messages(locale);
+  const [open, setOpen] = useState(false);
+  const stops = ids.map((id) => placeById(id));
+  const label = copy.betweenStops(stops.length);
+
+  if (stops.length === 0) {
+    return <li className="py-2.5 text-sm text-muted-foreground">{label}</li>;
+  }
+
+  return (
+    <li className="py-2.5">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-2 text-left text-sm text-muted-foreground outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span>{label}</span>
+        <svg
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+          className={cn(
+            "size-3.5 shrink-0 transition-transform duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
+            open && "rotate-90",
+          )}
+        >
+          <path
+            d="M6 3.5 11 8 6 12.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open ? (
+        <ol className="mt-1 flex flex-col">
+          {stops.map((stop, index) => (
+            <li key={`${stop.id}-${index}`} className="py-0.5 text-sm leading-6">
+              <span className="tabular-nums text-muted-foreground">{index + 1}. </span>
+              {placeLabel(stop, locale)}
+            </li>
+          ))}
+        </ol>
+      ) : null}
+    </li>
   );
 }
 

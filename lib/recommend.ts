@@ -27,6 +27,8 @@ export type BusOption = {
   departLabel: string | null;
   total: number | null;
   hops: number;
+  /** Stop ids strictly between the chosen boarding and alighting visits, in route order. */
+  betweenIds: string[];
   remarks: string[];
   timetable: string;
   special: boolean;
@@ -84,6 +86,7 @@ function consider(
   dest: Point,
   direct: number,
   now: Date,
+  betweenIds: string[],
 ): BusOption | null {
   if (route.special && !inServiceWindow(now, route)) return null;
   if (boardStop.stopId === alightStop.stopId) return null;
@@ -120,6 +123,7 @@ function consider(
       departLabel: null,
       total: null,
       hops,
+      betweenIds,
       remarks: uniqueRemarks,
       timetable: timetableLabel(route),
       special: Boolean(route.special),
@@ -141,6 +145,7 @@ function consider(
     departLabel: departure.label,
     total: walkIn + departure.wait + ride + walkOut,
     hops,
+    betweenIds,
     remarks: uniqueRemarks,
     timetable: timetableLabel(route),
     special: Boolean(route.special),
@@ -184,7 +189,8 @@ export function advise(origin: Point, dest: Point, now: Date): TripAdvice {
   for (const route of routesOnClock(now)) {
     for (let i = 0; i < route.stops.length; i += 1) {
       for (let j = i + 1; j < route.stops.length; j += 1) {
-        const option = consider(route, route.stops[i], route.stops[j], j - i, origin, dest, direct, now);
+        const betweenIds = route.stops.slice(i + 1, j).map((stop) => stop.stopId);
+        const option = consider(route, route.stops[i], route.stops[j], j - i, origin, dest, direct, now, betweenIds);
         if (!option) continue;
         if (better(option, bestAny, false)) bestAny = option;
         if (option.wait !== null && option.wait <= MAX_WAIT && better(option, bestRunning, true)) {
@@ -212,7 +218,8 @@ export function routeChoices(origin: Point, dest: Point, now: Date): BusOption[]
   for (const route of routesOnClock(now)) {
     for (let i = 0; i < route.stops.length; i += 1) {
       for (let j = i + 1; j < route.stops.length; j += 1) {
-        const option = consider(route, route.stops[i], route.stops[j], j - i, origin, dest, direct, now);
+        const betweenIds = route.stops.slice(i + 1, j).map((stop) => stop.stopId);
+        const option = consider(route, route.stops[i], route.stops[j], j - i, origin, dest, direct, now, betweenIds);
         if (!option || option.wait === null || option.wait > MAX_WAIT || option.total === null) continue;
         const current = byRoute.get(route.id);
         if (better(option, current, true)) byRoute.set(route.id, option);

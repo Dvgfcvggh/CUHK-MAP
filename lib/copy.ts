@@ -542,6 +542,11 @@ export function messages(locale: Locale) {
       return `走到车站约 ${minutes} 分钟`;
     },
     alight: en ? "Alight" : hant ? "下車" : "下车",
+    betweenStops(count: number) {
+      if (en) return count === 1 ? "1 stop in between" : `${count} stops in between`;
+      if (hant) return `中間 ${count} 站`;
+      return `中间 ${count} 站`;
+    },
     walkOut(minutes: number) {
       if (en) return `About ${minutes} minutes after you get off`;
       if (hant) return `下車後再走約 ${minutes} 分鐘`;

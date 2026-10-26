@@ -6,12 +6,26 @@ import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, neare
 import { advise, hkDate, isShortTrip, routeChoices, walkingBeatsBus } from "../lib/recommend";
 import { ROUTES, routeWhen, servicePicture } from "../lib/routes";
 import { walkApps, walkEndsApart } from "../lib/walk-links";
-import type { TripAdvice } from "../lib/recommend";
+import type { BusOption, TripAdvice } from "../lib/recommend";
 
 function expect(condition: boolean, message: string) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function betweenMatches(bus: BusOption): boolean {
+  const route = ROUTES.find((item) => item.id === bus.routeId);
+  if (!route || bus.betweenIds.length !== Math.max(0, bus.hops - 1)) return false;
+  for (let i = 0; i < route.stops.length; i += 1) {
+    if (route.stops[i].stopId !== bus.board.id) continue;
+    for (let j = i + 1; j < route.stops.length; j += 1) {
+      if (route.stops[j].stopId !== bus.alight.id || j - i !== bus.hops) continue;
+      const ids = route.stops.slice(i + 1, j).map((stop) => stop.stopId);
+      if (ids.length === bus.betweenIds.length && ids.every((id, index) => id === bus.betweenIds[index])) return true;
+    }
+  }
+  return false;
 }
 
 function routeOf(advice: TripAdvice): string | null {
@@ -345,6 +359,14 @@ const hans = messages("zh-Hans");
 const hant = messages("zh-Hant");
 const en = messages("en");
 expect(hans.author === "作者 Dvgfcvggh" && hant.author === "作者 Dvgfcvggh" && en.author === "By Dvgfcvggh", en.author);
+expect(hans.betweenStops(0) === "中间 0 站" && hans.betweenStops(3) === "中间 3 站", hans.betweenStops(3));
+expect(hant.betweenStops(0) === "中間 0 站" && hant.betweenStops(3) === "中間 3 站", hant.betweenStops(3));
+expect(
+  en.betweenStops(0) === "0 stops in between" &&
+    en.betweenStops(1) === "1 stop in between" &&
+    en.betweenStops(3) === "3 stops in between",
+  en.betweenStops(1),
+);
 expect(!("intro" in hans), "the term line is not a separate intro");
 expect(
   hans.routesFoot.startsWith("2026–27 学年第一学期") &&
@@ -377,6 +399,10 @@ expect(new Set(stationToShaw.map((item) => item.routeId)).size === stationToShaw
 for (let index = 1; index < stationToShaw.length; index += 1) {
   expect((stationToShaw[index].total ?? 0) >= (stationToShaw[index - 1].total ?? 0), "choices are sorted by total time");
 }
+for (const choice of stationToShaw) {
+  expect(betweenMatches(choice), `${choice.routeId} ${choice.board.id} → ${choice.alight.id} ${choice.betweenIds.join(",")}`);
+}
+expect(stationToShaw.some((choice) => choice.betweenIds.length > 0), "a station-to-Shaw ride passes at least one stop");
 if (toSrr.status === "bus") {
   const recommended = stationToShaw.find((item) => item.routeId === toSrr.bus.routeId);
   expect(
