@@ -233,7 +233,7 @@ export function routeChoices(origin: Point, dest: Point, now: Date): BusOption[]
   });
 }
 
-/** Display marks for the route chips. Does not change which route is recommended or the sort. */
+/** Display marks for the route chips. Does not change which route is recommended. */
 export function routeAdvantage(options: Pick<BusOption, "total" | "walkIn" | "walkOut">[]): { shortestTime: boolean; shortestWalk: boolean }[] {
   if (options.length === 0) return [];
   const minTotal = Math.min(...options.map((option) => option.total ?? Number.POSITIVE_INFINITY));
@@ -242,6 +242,20 @@ export function routeAdvantage(options: Pick<BusOption, "total" | "walkIn" | "wa
     shortestTime: (option.total ?? Number.POSITIVE_INFINITY) === minTotal,
     shortestWalk: option.walkIn + option.walkOut === minWalk,
   }));
+}
+
+/** Labeled routes first, then the rest. Each group is shortest total time first. */
+export function orderRouteOptions<T extends Pick<BusOption, "routeId" | "total" | "walkIn" | "walkOut">>(options: T[]): T[] {
+  const marks = routeAdvantage(options);
+  return options
+    .map((option, index) => ({ option, labeled: marks[index].shortestTime || marks[index].shortestWalk }))
+    .sort((a, b) => {
+      if (a.labeled !== b.labeled) return a.labeled ? -1 : 1;
+      const diff = (a.option.total ?? 0) - (b.option.total ?? 0);
+      if (diff !== 0) return diff;
+      return a.option.routeId < b.option.routeId ? -1 : a.option.routeId > b.option.routeId ? 1 : 0;
+    })
+    .map((item) => item.option);
 }
 
 export function formatWait(wait: number): string {

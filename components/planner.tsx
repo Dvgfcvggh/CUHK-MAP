@@ -28,7 +28,7 @@ import {
   typedPin,
   type Point,
 } from "@/lib/places";
-import { advise, isShortTrip, routeAdvantage, routeChoices, walkingBeatsBus, type BusOption, type TripAdvice } from "@/lib/recommend";
+import { advise, isShortTrip, orderRouteOptions, routeAdvantage, routeChoices, walkingBeatsBus, type BusOption, type TripAdvice } from "@/lib/recommend";
 import { ROUTES, servicePicture, type ServicePicture, type ShuttleRoute } from "@/lib/routes";
 import { walkApps, walkEndsApart, type WalkEnd } from "@/lib/walk-links";
 import { cn } from "@/lib/utils";
@@ -682,7 +682,8 @@ function ResultCard({
       !pickedRouteId || pickedRouteId === advice.bus.routeId
         ? advice.bus
         : (choices.find((item) => item.routeId === pickedRouteId) ?? advice.bus);
-    const options = choices.some((item) => item.routeId === advice.bus.routeId) ? choices : [advice.bus, ...choices];
+    const listed = choices.some((item) => item.routeId === advice.bus.routeId) ? choices : [advice.bus, ...choices];
+    const options = orderRouteOptions(listed);
     const mentionWalk = walkingBeatsBus(advice.directMin, active) || isShortTrip(start, end);
     const fasterRecommended = walkingBeatsBus(advice.directMin, advice.bus);
     const advantages = routeAdvantage(options);

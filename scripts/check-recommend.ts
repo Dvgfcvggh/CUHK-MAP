@@ -3,7 +3,7 @@ import { holidayInfo } from "../lib/hk-time";
 import { nominatimSearchUrl } from "../lib/geocode";
 import { campusTileSpan, parseTilePath, tileAllowed } from "../lib/osm-tiles";
 import { CAMPUS_CENTER, currentPositionPoint, distanceMeters, nearbyStops, nearestStops, placeById, pointFromMap, searchPlaces, typedPin, walkMinutes } from "../lib/places";
-import { advise, hkDate, isShortTrip, routeAdvantage, routeChoices, walkingBeatsBus } from "../lib/recommend";
+import { advise, hkDate, isShortTrip, orderRouteOptions, routeAdvantage, routeChoices, walkingBeatsBus } from "../lib/recommend";
 import { ROUTES, routeWhen, servicePicture } from "../lib/routes";
 import { walkApps, walkEndsApart } from "../lib/walk-links";
 import type { BusOption, TripAdvice } from "../lib/recommend";
@@ -434,6 +434,18 @@ const walkTie = routeAdvantage([
 expect(walkTie[0].shortestTime && walkTie[0].shortestWalk && !walkTie[1].shortestTime && walkTie[1].shortestWalk, "tied walks all get 步行最短");
 const only = routeAdvantage([{ total: 15, walkIn: 1, walkOut: 1 }]);
 expect(only[0].shortestTime && only[0].shortestWalk, "the only route is shortest on both");
+const ordered = orderRouteOptions([
+  { routeId: "C", total: 22, walkIn: 4, walkOut: 5 },
+  { routeId: "A", total: 20, walkIn: 5, walkOut: 4 },
+  { routeId: "D", total: 30, walkIn: 6, walkOut: 5 },
+  { routeId: "B", total: 25, walkIn: 1, walkOut: 3 },
+]);
+expect(ordered.map((item) => item.routeId).join(",") === "A,B,C,D", ordered.map((item) => item.routeId).join(","));
+const tied = orderRouteOptions([
+  { routeId: "2", total: 10, walkIn: 1, walkOut: 1 },
+  { routeId: "1", total: 10, walkIn: 2, walkOut: 2 },
+]);
+expect(tied.map((item) => item.routeId).join(",") === "1,2", "equal totals stay in route id order");
 expect(hans.routeStops === "沿线站点" && hant.routeStops === "沿線站點" && en.routeStops === "Stops in order", en.routeStops);
 const gps = nearestStops(station.lat, station.lng, 3);
 expect(gps.length === 3 && gps[0].stop.id === "univ-station", gps.map((item) => item.stop.id).join(","));
