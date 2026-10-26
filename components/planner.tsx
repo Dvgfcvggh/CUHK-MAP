@@ -22,7 +22,6 @@ import {
   distanceMeters,
   commonPlaces,
   nearbyStops,
-  nearestStops,
   otherStops,
   placeById,
   searchPlaces,
@@ -334,8 +333,6 @@ export function Planner() {
             </CardContent>
           </Card>
 
-          <NearestStops />
-
           <StopRow selectedId={mode === "start" ? start?.id : end?.id} onPick={choose} />
 
           <ResultCard
@@ -374,55 +371,6 @@ export function Planner() {
         </p>
       </section>
     </div>
-  );
-}
-
-function NearestStops() {
-  const locale = useLocale();
-  const copy = messages(locale);
-  const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
-
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    let cancelled = false;
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (cancelled) return;
-        const lat = position.coords?.latitude;
-        const lng = position.coords?.longitude;
-        if (typeof lat !== "number" || typeof lng !== "number" || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
-        setHere({ lat, lng });
-      },
-      () => {
-        // Permission denied, unavailable, or timed out: leave the card hidden.
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (!here) return null;
-  const nearest = nearestStops(here.lat, here.lng, 3);
-  if (nearest.length === 0) return null;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.nearbyTitle}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ol className="flex flex-col">
-          {nearest.map((item) => (
-            <li key={item.stop.id} className="border-t border-border py-2.5 first:border-t-0 first:pt-0">
-              <p className="text-base font-medium">{placeLabel(item.stop, locale)}</p>
-              <p className="text-sm leading-6 text-muted-foreground tabular-nums">{copy.nearbyLine(item.meters, item.minutes)}</p>
-            </li>
-          ))}
-        </ol>
-      </CardContent>
-    </Card>
   );
 }
 

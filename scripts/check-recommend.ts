@@ -415,7 +415,8 @@ if (toSrr.status === "bus") {
 expect(hans.endsTitle === "起点和终点", hans.endsTitle);
 expect(hant.endsTitle === "起點和終點", hant.endsTitle);
 expect(en.endsTitle === "Start and end", en.endsTitle);
-expect(hans.nearbyTitle === "最近三个校巴站" && hant.nearbyTitle === "最近三個校巴站" && en.nearbyTitle === "Three nearest bus stops", en.nearbyTitle);
+expect(!("nearbyTitle" in hans) && !("nearbyLine" in hans), "the nearest-stops card copy is gone");
+expect(hans.useHere === "使用当前位置" && hant.useHere === "使用目前位置" && en.useHere === "Use current location", en.useHere);
 expect(hans.routeStops === "沿线站点" && hant.routeStops === "沿線站點" && en.routeStops === "Stops in order", en.routeStops);
 const gps = nearestStops(station.lat, station.lng, 3);
 expect(gps.length === 3 && gps[0].stop.id === "univ-station", gps.map((item) => item.stop.id).join(","));

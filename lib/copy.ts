@@ -618,13 +618,6 @@ export function messages(locale: Locale) {
         ? "沒有定位權限，起點沒改。"
         : "没有定位权限，起点没改。",
     locationTimeout: en ? "Location timed out. The start is unchanged." : hant ? "定位逾時，起點沒改。" : "定位超时，起点没改。",
-    nearbyTitle: en ? "Three nearest bus stops" : hant ? "最近三個校巴站" : "最近三个校巴站",
-    nearbyLine(meters: number, minutes: number) {
-      const dist = distancePhrase(meters, locale);
-      if (en) return `Straight line ${dist}, about ${minutes} minutes on foot`;
-      if (hant) return `直線${dist}，步行約 ${minutes} 分鐘`;
-      return `直线${dist}，步行约 ${minutes} 分钟`;
-    },
     routeStops: en ? "Stops in order" : hant ? "沿線站點" : "沿线站点",
     routeFirst: en ? "First" : "首班",
     routeLast: en ? "Last" : "末班",
