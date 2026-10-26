@@ -9,7 +9,6 @@ import { InstallBarButton, InstallBarNote, InstallHint } from "@/components/inst
 import {
   messages,
   noteText,
-  pictureText,
   placeLabel,
   remarkText,
   routeLabel,
@@ -332,9 +331,6 @@ export function Planner() {
               {locationMessage ? <StatusNote tone="error">{locationMessage}</StatusNote> : null}
               <SelectionRow label={copy.start} point={start} unset={copy.unset} clearLabel={copy.clear} locale={locale} onClear={() => setStart(null)} />
               <SelectionRow label={copy.end} point={end} unset={copy.unset} clearLabel={copy.clear} locale={locale} onClear={() => setEnd(null)} />
-              <p className="text-sm leading-6 text-muted-foreground">
-                {picture ? pictureText(picture, locale).summary : copy.clockLoading}
-              </p>
             </CardContent>
           </Card>
 

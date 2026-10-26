@@ -436,11 +436,6 @@ export function messages(locale: Locale) {
     end: en ? "End" : hant ? "終點" : "终点",
     unset: en ? "Not chosen" : hant ? "還沒選" : "还没选",
     clear: en ? "Clear" : "清除",
-    clockLoading: en
-      ? "Reading Hong Kong time. Teaching days, evenings, and holidays follow this clock. There is no manual switch."
-      : hant
-        ? "正在讀取香港時間。上課日、晚間和假日都按這個時間決定，不用手動切換。"
-        : "正在读取香港时间。上课日、晚间和假日都按这个时间决定，不用手动切换。",
     stops: en ? "Bus stops" : hant ? "校巴站點" : "校巴站点",
     routes: en ? "Listed routes" : hant ? "收錄的路線" : "收录的路线",
     routesLead: en
